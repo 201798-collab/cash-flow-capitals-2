@@ -73,6 +73,7 @@ body.dark .spending-item{background:#1e293b}
 <div class="card">
 <button onclick="setMode('regular')">💼 Regular Income</button>
 <button class="secondary" onclick="setMode('irregular')">🎁 Irregular Income</button>
+<button class="secondary" onclick="setMode('nospend')" style="background:#dc2626">🚫 No Spend Challenge</button>
 </div>
 
 <!-- REGULAR MODE -->
@@ -191,6 +192,66 @@ body.dark .spending-item{background:#1e293b}
 
 </div>
 
+<!-- NO SPEND MODE -->
+<div id="nospend" class="hidden">
+
+<div class="card">
+<h3>🚫 No Spend Challenge</h3>
+<p>Track your no-spend days and build a savings streak!</p>
+<input id="noSpendGoal" type="text" placeholder="Your savings goal (e.g., New Laptop)">
+<input id="startMoney" type="number" placeholder="Starting money (₹)">
+<div class="stat" style="margin-top:12px"><span><b>Challenge Duration:</b></span><b>30 Days</b></div>
+<button onclick="startChallenge()">🎯 Start 30-Day Challenge</button>
+</div>
+
+<div id="challengeActive" class="hidden">
+<div class="card">
+<h3>📊 Challenge Progress</h3>
+<div class="stat"><span>Goal</span><b id="challengeGoalName"></b></div>
+<div class="stat"><span>Starting Amount</span><b>₹<span id="challengeStart"></span></b></div>
+<div class="stat"><span>Current Amount</span><b>₹<span id="challengeCurrent"></span></b></div>
+<div class="stat"><span>Days Completed</span><b><span id="daysCompleted">0</span> / <span id="totalDays"></span></b></div>
+<div class="stat"><span>Success Rate</span><b><span id="successRate">0</span>%</b></div>
+</div>
+
+<div class="card">
+<h3>💰 Log Today's Activity</h3>
+<button onclick="logNoSpend()" style="background:#22c55e">✅ No Spend Today!</button>
+<input id="spendAmount" type="number" placeholder="Amount spent today (₹)" style="margin-top:12px">
+<button onclick="logSpend()" style="background:#f59e0b">💸 I Spent Money</button>
+</div>
+
+<div class="card">
+<h3>🔥 Your Streak</h3>
+<div style="text-align:center;padding:20px">
+<div style="font-size:48px;font-weight:bold;color:#ef4444" id="streakDisplay">0</div>
+<div style="font-size:18px;margin-top:10px">Days in a row! 🔥</div>
+</div>
+</div>
+
+<div class="card">
+<h3>📅 Challenge Calendar</h3>
+<div id="calendarDisplay"></div>
+</div>
+
+<div class="card">
+<h3>🏆 Challenge Achievements</h3>
+<div id="challengeAchievements"></div>
+</div>
+</div>
+
+<div class="card">
+<h3>🤖 No-Spend Challenge Tips</h3>
+<div class="tip" id="noSpendTips"></div>
+<button class="secondary" onclick="nextNoSpendTip()" style="margin-top:12px">💡 Next Tip</button>
+</div>
+
+<div class="card">
+<button class="danger" onclick="resetChallenge()">Reset Challenge</button>
+</div>
+
+</div>
+
 </div>
 
 <script>
@@ -205,7 +266,9 @@ let state={
   dark:false,mode:null,
   income:0,expenses:[],
   savingsGoal:null,
-  tipIndex:0
+  tipIndex:0,
+  noSpendChallenge:null,
+  noSpendTipIndex:0
 };
 
 const teenTips=[
@@ -226,6 +289,24 @@ const teenTips=[
   "🎓 The best investment is in your education and personal development!"
 ];
 
+const noSpendTips=[
+  "🚫 Unsubscribe from promotional emails to avoid temptation!",
+  "🏠 Find free entertainment: libraries, parks, YouTube tutorials, and community events.",
+  "🍳 Cook at home and meal prep - it's healthier and saves tons of money!",
+  "🚶 Walk or bike instead of taking paid transport when possible.",
+  "💪 Turn no-spend into a game - challenge yourself to find creative free alternatives!",
+  "📱 Delete shopping apps from your phone during the challenge.",
+  "👥 Tell friends about your challenge - they'll support you and hold you accountable!",
+  "🎨 Try free hobbies: drawing, writing, learning languages online, or exercising.",
+  "💰 Calculate how much you're saving each day - it's super motivating!",
+  "🔄 Repurpose things you already own instead of buying new items.",
+  "🎯 Remember WHY you're doing this - keep your goal visible!",
+  "📚 Use free resources: libraries for books, YouTube for learning, parks for fitness.",
+  "🌟 Every no-spend day is a WIN - celebrate your progress!",
+  "💡 Before buying, ask: Do I NEED this or just WANT it?",
+  "🏆 Track your streak - watching it grow is incredibly satisfying!"
+];
+
 function toggleDark(){
  state.dark=!state.dark;
  document.body.classList.toggle("dark");
@@ -235,6 +316,7 @@ function setMode(m){
  state.mode=m;
  document.getElementById("regular").classList.toggle("hidden",m!=="regular");
  document.getElementById("irregular").classList.toggle("hidden",m!=="irregular");
+ document.getElementById("nospend").classList.toggle("hidden",m!=="nospend");
  update();
 }
 
@@ -323,14 +405,21 @@ function tips(){
    p<50?"Great control! Save more.":
    p<80?"Balanced spending.":
    "High spending! Cut entertainment.";
- }else{
+ }else if(state.mode==="irregular"){
   document.getElementById('irrTips').innerText=teenTips[state.tipIndex];
+ }else if(state.mode==="nospend"){
+  document.getElementById('noSpendTips').innerText=noSpendTips[state.noSpendTipIndex];
  }
 }
 
 function nextTip(){
  state.tipIndex=(state.tipIndex+1)%teenTips.length;
  document.getElementById('irrTips').innerText=teenTips[state.tipIndex];
+}
+
+function nextNoSpendTip(){
+ state.noSpendTipIndex=(state.noSpendTipIndex+1)%noSpendTips.length;
+ document.getElementById('noSpendTips').innerText=noSpendTips[state.noSpendTipIndex];
 }
 
 function calculatePlan(){
@@ -546,6 +635,146 @@ function showRewards(){
  });
  
  document.getElementById("rewardsList").innerHTML=html;
+}
+
+// NO SPEND CHALLENGE FUNCTIONS
+function startChallenge(){
+ let goal = document.getElementById('noSpendGoal').value || "Savings Goal";
+ let start = +document.getElementById('startMoney').value;
+ let days = 30; // Fixed 30-day challenge
+ 
+ if(!start || start<=0){
+  alert("Please enter your starting money amount!");
+  return;
+ }
+ 
+ state.noSpendChallenge = {
+  goal: goal,
+  startAmount: start,
+  currentAmount: start,
+  totalDays: days,
+  daysLog: [],
+  streak: 0,
+  maxStreak: 0
+ };
+ 
+ updateChallengeDisplay();
+ document.getElementById('challengeActive').classList.remove('hidden');
+ alert("🎉 30-Day Challenge Started! Let's save some money!");
+}
+
+function logNoSpend(){
+ if(!state.noSpendChallenge) return;
+ 
+ let today = new Date().toDateString();
+ let log = state.noSpendChallenge.daysLog;
+ 
+ if(log.length>0 && log[log.length-1].date === today){
+  alert("Already logged today!");
+  return;
+ }
+ 
+ log.push({date: today, spent: 0, success: true});
+ state.noSpendChallenge.streak++;
+ if(state.noSpendChallenge.streak > state.noSpendChallenge.maxStreak){
+  state.noSpendChallenge.maxStreak = state.noSpendChallenge.streak;
+ }
+ 
+ updateChallengeDisplay();
+ alert("🎉 Great job! No-spend day logged!");
+}
+
+function logSpend(){
+ if(!state.noSpendChallenge) return;
+ 
+ let amount = +document.getElementById('spendAmount').value;
+ if(!amount || amount<=0){
+  alert("Please enter the amount spent!");
+  return;
+ }
+ 
+ let today = new Date().toDateString();
+ let log = state.noSpendChallenge.daysLog;
+ 
+ if(log.length>0 && log[log.length-1].date === today){
+  alert("Already logged today!");
+  return;
+ }
+ 
+ log.push({date: today, spent: amount, success: false});
+ state.noSpendChallenge.currentAmount -= amount;
+ state.noSpendChallenge.streak = 0;
+ 
+ document.getElementById('spendAmount').value = "";
+ updateChallengeDisplay();
+}
+
+function updateChallengeDisplay(){
+ let c = state.noSpendChallenge;
+ 
+ document.getElementById('challengeGoalName').innerText = c.goal;
+ document.getElementById('challengeStart').innerText = c.startAmount;
+ document.getElementById('challengeCurrent').innerText = c.currentAmount;
+ document.getElementById('daysCompleted').innerText = c.daysLog.length;
+ document.getElementById('totalDays').innerText = c.totalDays;
+ 
+ let successDays = c.daysLog.filter(d=>d.success).length;
+ let rate = c.daysLog.length > 0 ? Math.round((successDays/c.daysLog.length)*100) : 0;
+ document.getElementById('successRate').innerText = rate;
+ 
+ document.getElementById('streakDisplay').innerText = c.streak;
+ 
+ drawCalendar();
+ showChallengeAchievements();
+}
+
+function drawCalendar(){
+ let c = state.noSpendChallenge;
+ let html = "<div style='display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:10px'>";
+ 
+ for(let i=0; i<c.totalDays; i++){
+  let status = i < c.daysLog.length ? (c.daysLog[i].success ? "✅" : "❌") : "⬜";
+  let bg = i < c.daysLog.length ? (c.daysLog[i].success ? "#22c55e" : "#ef4444") : "#94a3b8";
+  html += `<div style="padding:10px;background:${bg};border-radius:8px;text-align:center;color:white;font-weight:bold">${status}</div>`;
+ }
+ 
+ html += "</div>";
+ document.getElementById('calendarDisplay').innerHTML = html;
+}
+
+function showChallengeAchievements(){
+ let c = state.noSpendChallenge;
+ let achievements = [
+  {at:1, text:"🌟 First Day - You started the journey!"},
+  {at:3, text:"🔥 3-Day Streak - Building momentum!"},
+  {at:7, text:"⭐ Week Warrior - 7 days strong!"},
+  {at:14, text:"💪 Two Weeks - Halfway hero!"},
+  {at:30, text:"👑 Month Master - 30 days of discipline!"}
+ ];
+ 
+ let saved = c.startAmount - c.currentAmount;
+ let html = "";
+ 
+ achievements.forEach(a=>{
+  if(c.maxStreak >= a.at){
+   html += `<div class="tip" style="margin-top:8px">✅ ${a.text}</div>`;
+  }else{
+   html += `<div style="padding:10px;margin-top:8px;background:#334155;border-radius:8px;color:#e5e7eb">🔒 ${a.text}</div>`;
+  }
+ });
+ 
+ html += `<div class="tip" style="margin-top:12px">💰 Money Saved: ₹${Math.abs(saved)}</div>`;
+ 
+ document.getElementById('challengeAchievements').innerHTML = html;
+}
+
+function resetChallenge(){
+ if(confirm("Reset 30-day no-spend challenge? All progress will be lost!")){
+  state.noSpendChallenge = null;
+  document.getElementById('challengeActive').classList.add('hidden');
+  document.getElementById('noSpendGoal').value = "";
+  document.getElementById('startMoney').value = "";
+ }
 }
 
 // Initialize
