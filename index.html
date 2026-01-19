@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LootLedger V10: Pro Tuner</title>
+    <title>LootLedger V9: 100 Levels</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
@@ -12,85 +12,173 @@
     <style>
         :root {
             --bg: #050505; --card: #111;
-            --xp: #eab308; --needs: #3b82f6; --wants: #8b5cf6;
-            --saves: #10b981; --fire: #f97316; --danger: #ef4444;
+            --xp: #eab308; /* Gold */
+            --needs: #3b82f6; /* Blue */
+            --wants: #8b5cf6; /* Purple */
+            --saves: #10b981; /* Green */
+            --fire: #f97316; /* Orange */
+            --danger: #ef4444; /* Red */
             --text: #fff; --dim: #666;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Rajdhani', sans-serif; user-select: none; }
-        body { background: var(--bg); color: var(--text); padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding-bottom: 80px; }
+        body { background: var(--bg); color: var(--text); padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; position: relative; padding-bottom: 80px; }
 
-        /* --- UI COMPONENTS --- */
-        .gamer-hud { width: 100%; max-width: 500px; display: flex; align-items: center; gap: 15px; margin-bottom: 15px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 50px; border: 1px solid #333; }
-        .rank-badge { background: var(--xp); color: #000; font-weight: 800; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; box-shadow: 0 0 10px var(--xp); }
+        /* --- 1. GAMIFICATION BAR --- */
+        .gamer-hud {
+            width: 100%; max-width: 500px; display: flex; align-items: center; gap: 15px;
+            margin-bottom: 15px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 50px;
+            border: 1px solid #333; margin-top: 10px;
+        }
+        .rank-badge {
+            background: var(--xp); color: #000; font-weight: 800; padding: 5px 15px;
+            border-radius: 20px; font-size: 0.9rem; white-space: nowrap;
+            box-shadow: 0 0 10px var(--xp);
+        }
         .xp-track { width: 100%; height: 8px; background: #333; border-radius: 10px; overflow: hidden; }
-        .xp-fill { height: 100%; background: var(--xp); width: 0%; transition: 0.5s; }
+        .xp-fill { height: 100%; background: var(--xp); width: 0%; transition: width 0.5s ease; box-shadow: 0 0 10px var(--xp); }
+        .level-text { font-size: 0.8rem; color: var(--xp); font-weight: 700; margin-right: 10px; }
 
-        /* --- SLIDER SECTION --- */
-        .config-panel { width: 100%; max-width: 500px; background: #111; padding: 15px; border-radius: 15px; border: 1px solid #222; margin-bottom: 15px; }
-        .slider-row { margin: 10px 0; }
-        .slider-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px; font-weight: 700; color: #aaa; }
-        input[type=range] { width: 100%; cursor: pointer; accent-color: var(--xp); }
+        /* --- 2. TABS --- */
+        .tabs { display: flex; gap: 10px; width: 100%; max-width: 500px; margin-bottom: 15px; }
+        .tab {
+            flex: 1; padding: 12px; background: #0f0f0f; border: 1px solid #333;
+            color: #555; font-weight: 800; cursor: pointer; border-radius: 12px;
+            transition: 0.3s; text-transform: uppercase; text-align: center; letter-spacing: 1px;
+        }
+        .tab.active {
+            border-color: var(--saves); color: var(--saves);
+            background: rgba(16, 185, 129, 0.1); box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+        }
 
-        .challenge-box { width: 100%; max-width: 500px; margin-bottom: 15px; background: #1a0b05; border: 1px solid var(--fire); border-radius: 12px; padding: 15px; text-align: center; }
-        .hud-chart { width: 100%; max-width: 500px; height: 220px; position: relative; margin-bottom: 15px; }
-        .chart-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-        .balance-big { font-size: 2.2rem; font-weight: 800; }
+        /* --- 3. CHALLENGE BOX --- */
+        .challenge-box {
+            width: 100%; max-width: 500px; margin-bottom: 20px;
+            background: #1a0b05; border: 1px solid var(--fire);
+            border-radius: 12px; padding: 15px; text-align: center;
+            position: relative; overflow: hidden; transition: 0.3s;
+        }
+        .c-inactive .c-btn {
+            background: var(--fire); color: white; border: none; padding: 10px 20px;
+            font-weight: 800; border-radius: 8px; cursor: pointer; text-transform: uppercase;
+        }
+        .c-active { box-shadow: 0 0 20px rgba(249, 115, 22, 0.2); }
+        .streak-info { display: flex; justify-content: space-between; align-items: center; z-index: 2; position: relative; }
+        .streak-days { font-size: 1.5rem; font-weight: 800; color: var(--fire); }
+        .streak-bar-bg { width: 100%; height: 8px; background: #331f1f; margin-top: 10px; border-radius: 5px; position: relative; z-index: 2;}
+        .streak-bar-fill { height: 100%; background: var(--fire); width: 0%; border-radius: 5px; transition: width 0.5s; }
+        
+        /* --- 4. MAIN CHART --- */
+        .hud-chart {
+            width: 100%; max-width: 500px; height: 240px;
+            position: relative; margin-bottom: 20px;
+        }
+        .chart-center {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .balance-big { font-size: 2.2rem; font-weight: 800; color: #fff; }
+        .balance-label { font-size: 0.8rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
 
-        /* --- BARS --- */
-        .rule-container { width: 100%; max-width: 500px; display: grid; gap: 10px; }
-        .rule-card { background: var(--card); padding: 12px; border-radius: 10px; border-left: 4px solid #555; }
-        .rule-header { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 5px; font-weight: 700; }
-        .rule-bar-bg { background: rgba(255,255,255,0.05); height: 6px; border-radius: 10px; }
-        .rule-bar-fill { height: 100%; border-radius: 10px; transition: 0.5s; }
-        .rc-needs { border-color: var(--needs); } .rc-wants { border-color: var(--wants); } .rc-saves { border-color: var(--saves); }
+        /* --- 5. BUDGET BARS --- */
+        .rule-container { width: 100%; max-width: 500px; display: grid; gap: 15px; margin-bottom: 25px; }
+        .rule-card {
+            background: var(--card); padding: 15px; border-radius: 12px;
+            border-left: 4px solid #555; position: relative; overflow: hidden;
+        }
+        .rule-header { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px; font-weight: 700; z-index: 2; position: relative;}
+        .rule-bar-bg { background: rgba(255,255,255,0.05); height: 6px; border-radius: 10px; width: 100%; position: relative; z-index: 2; }
+        .rule-bar-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease; }
+        
+        .rc-needs { border-color: var(--needs); } .rc-needs .rule-bar-fill { background: var(--needs); }
+        .rc-wants { border-color: var(--wants); } .rc-wants .rule-bar-fill { background: var(--wants); }
+        .rc-saves { border-color: var(--saves); } .rc-saves .rule-bar-fill { background: var(--saves); }
 
-        /* --- GOAL TIMER --- */
-        .goal-timer { font-size: 0.75rem; color: var(--saves); margin-top: 8px; font-weight: 700; display: none; }
+        /* --- 6. ADD BUTTON & PANELS --- */
+        .fab {
+            position: fixed; bottom: 25px; right: 25px;
+            width: 60px; height: 60px; background: #fff; color: #000;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; box-shadow: 0 0 20px rgba(255,255,255,0.3); cursor: pointer; z-index: 90;
+            transition: transform 0.2s;
+        }
+        .fab:hover { transform: scale(1.1); }
 
-        .fab { position: fixed; bottom: 25px; right: 25px; width: 60px; height: 60px; background: #fff; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; z-index: 90; cursor: pointer; }
-        .panel { position: fixed; bottom: 0; left: 0; width: 100%; background: #151515; padding: 30px; border-radius: 25px 25px 0 0; transform: translateY(100%); transition: 0.3s; z-index: 95; border-top: 2px solid var(--xp); }
+        .panel {
+            position: fixed; bottom: 0; left: 0; width: 100%; background: #151515;
+            padding: 30px; border-radius: 25px 25px 0 0; transform: translateY(100%);
+            transition: 0.3s; z-index: 95; border-top: 2px solid var(--xp);
+        }
         .panel.open { transform: translateY(0); }
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
-        .hidden { display: none; }
-        .input-std { width: 100%; padding: 12px; margin-bottom: 10px; background: #000; border: 1px solid #333; color: white; border-radius: 8px; }
-        .btn-primary { width: 100%; padding: 12px; background: var(--needs); color: white; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; text-transform: uppercase; }
+        
+        .cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
+        .cat-btn {
+            background: #222; color: #888; border: 1px solid #333; padding: 12px;
+            border-radius: 8px; font-size: 0.8rem; cursor: pointer; text-align: center; font-weight: 600;
+        }
+        .cat-btn.selected { background: var(--xp); color: black; border-color: var(--xp); }
+
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 100;
+            display: flex; justify-content: center; align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        .modal.hidden { display: none; }
+        .setup-card {
+            background: var(--card); border: 1px solid var(--needs);
+            padding: 25px; border-radius: 20px; width: 90%; max-width: 400px;
+            text-align: center; box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);
+        }
+        .input-std {
+            width: 100%; padding: 15px; margin-bottom: 10px; background: #000;
+            border: 1px solid #333; color: white; border-radius: 8px; font-size: 1rem; outline: none;
+        }
+        .btn-primary {
+            width: 100%; padding: 15px; background: var(--needs); color: white; margin-top: 10px;
+            border: none; border-radius: 8px; font-weight: 800; font-size: 1rem; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .edit-link { font-size: 0.8rem; text-decoration: underline; color: #666; cursor: pointer; margin-top: 5px; display: inline-block; }
+
+        /* --- RESET BUTTON STYLE --- */
+        .reset-zone {
+            margin-top: 30px; margin-bottom: 20px;
+            color: #333; font-size: 0.7rem; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 2px; transition: color 0.3s;
+        }
+        .reset-zone:hover { color: var(--danger); }
+
     </style>
 </head>
 <body>
 
     <div class="modal" id="setupModal">
-        <div style="background:var(--card); padding:25px; border-radius:20px; width:90%; max-width:400px; text-align:center;">
-            <h2 style="margin-bottom:20px;">System Init</h2>
-            <input type="number" id="setupIncome" class="input-std" placeholder="Monthly Income">
-            <button class="btn-primary" onclick="completeSetup()">Start</button>
+        <div class="setup-card">
+            <h2 style="margin-bottom:20px; color:#fff;">System Init</h2>
+            <input type="number" id="setupIncome" class="input-std" placeholder="Monthly Pocket Money">
+            <button class="btn-primary" onclick="completeSetup()">Start Ledger</button>
         </div>
     </div>
 
     <div class="modal hidden" id="goalModal">
-        <div style="background:var(--card); padding:25px; border-radius:20px; width:90%; max-width:400px; text-align:center;">
-            <h2 style="margin-bottom:15px;">Target Goal</h2>
-            <input type="text" id="newGoalName" class="input-std" placeholder="What are you buying?">
-            <input type="number" id="newGoalCost" class="input-std" placeholder="Cost (₹)">
-            <label style="font-size: 0.8rem; color: #888; display: block; text-align: left; margin-bottom: 5px;">Target Date:</label>
-            <input type="date" id="newGoalDate" class="input-std">
-            <button class="btn-primary" style="background:var(--saves)" onclick="setGoal()">Set Goal</button>
-            <div style="margin-top:10px; cursor:pointer; color:#666;" onclick="closeGoalModal()">Cancel</div>
+        <div class="setup-card" style="border-color: var(--saves);">
+            <h2 style="margin-bottom:20px; color:#fff;">Set Target</h2>
+            <input type="text" id="newGoalName" class="input-std" placeholder="Item Name">
+            <input type="number" id="newGoalCost" class="input-std" placeholder="Cost">
+            <button class="btn-primary" style="background:var(--saves)" onclick="setGoal()">Save Target</button>
+            <div class="edit-link" onclick="closeGoalModal()">Cancel</div>
         </div>
     </div>
 
     <div class="gamer-hud">
         <div class="rank-badge" id="rankBadge">Level 1</div>
         <div class="xp-track"><div class="xp-fill" id="xpBar"></div></div>
+        <div class="level-text">XP</div>
     </div>
 
-    <div class="config-panel">
-        <div class="slider-label"><span>ADJUST RULE RATIO</span><span id="ratioDisplay">50 / 30 / 20</span></div>
-        <div class="slider-row">
-            <input type="range" id="needsSlider" min="10" max="80" value="50" oninput="adjustRules()">
-        </div>
-        <div class="slider-row">
-            <input type="range" id="wantsSlider" min="10" max="80" value="30" oninput="adjustRules()">
-        </div>
+    <div class="tabs">
+        <div class="tab" id="tabTarget" onclick="switchTab('target')"><i class="fa-solid fa-crosshairs"></i> Target</div>
+        <div class="tab" id="tabFlex" onclick="switchTab('flex')"><i class="fa-solid fa-shield-halved"></i> Flex</div>
     </div>
 
     <div class="challenge-box" id="challengeBox"></div>
@@ -98,188 +186,270 @@
     <div class="hud-chart">
         <canvas id="mainChart"></canvas>
         <div class="chart-center">
-            <div style="font-size:0.8rem; color:var(--dim);">WALLET</div>
+            <div class="balance-label">WALLET</div>
             <div class="balance-big" id="displayBalance">₹0</div>
         </div>
     </div>
 
     <div class="rule-container">
         <div class="rule-card rc-needs">
-            <div class="rule-header"><span id="needsLabelText">NEEDS (50%)</span><span><span id="needsSpent">0</span> / <span id="needsLimit">0</span></span></div>
-            <div class="rule-bar-bg"><div class="rule-bar-fill" id="barNeeds" style="width:0%; background:var(--needs)"></div></div>
+            <div class="rule-header"><span>NEEDS (50%)</span><span><span id="needsSpent">0</span> / <span id="needsLimit">0</span></span></div>
+            <div class="rule-bar-bg"><div class="rule-bar-fill" id="barNeeds" style="width:0%"></div></div>
         </div>
         <div class="rule-card rc-wants">
-            <div class="rule-header"><span id="wantsLabelText">WANTS (30%)</span><span><span id="wantsSpent">0</span> / <span id="wantsLimit">0</span></span></div>
-            <div class="rule-bar-bg"><div class="rule-bar-fill" id="barWants" style="width:0%; background:var(--wants)"></div></div>
+            <div class="rule-header"><span>WANTS (30%)</span><span><span id="wantsSpent">0</span> / <span id="wantsLimit">0</span></span></div>
+            <div class="rule-bar-bg"><div class="rule-bar-fill" id="barWants" style="width:0%"></div></div>
         </div>
-        <div class="rule-card rc-saves" onclick="openGoalModal()" style="cursor:pointer;">
+        <div class="rule-card rc-saves">
             <div class="rule-header"><span id="savingsTitle">SAVINGS</span><span id="savingsText">0</span></div>
-            <div class="rule-bar-bg"><div class="rule-bar-fill" id="barSaved" style="width:0%; background:var(--saves)"></div></div>
-            <div id="goalTimer" class="goal-timer"></div>
+            <div class="rule-bar-bg"><div class="rule-bar-fill" id="barSaved" style="width:0%"></div></div>
+            <div id="setGoalBtn" class="edit-link" style="display:none;" onclick="openGoalModal()">Set/Edit Goal</div>
         </div>
     </div>
 
-    <div class="reset-zone" style="margin-top:20px; color:#333; font-size:0.7rem; cursor:pointer;" onclick="resetSystem()">[ RESET SYSTEM ]</div>
+    <div class="reset-zone" onclick="resetSystem()">[ RESET SYSTEM ]</div>
 
     <div class="fab" onclick="openPanel()"><i class="fa-solid fa-plus"></i></div>
     <div class="panel" id="addPanel">
+        <h3 style="color:white; margin-bottom:15px;">Transaction</h3>
+        <input type="text" id="descInput" class="input-std" placeholder="Description">
         <input type="number" id="amtInput" class="input-std" placeholder="Amount (₹)">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
-            <button class="btn-primary" onclick="addExpense('needs')">Need</button>
-            <button class="btn-primary" style="background:var(--wants)" onclick="addExpense('wants')">Want</button>
+        <div class="cat-grid">
+            <div class="cat-btn" onclick="selectCat('food', this)">Food</div>
+            <div class="cat-btn" onclick="selectCat('travel', this)">Travel</div>
+            <div class="cat-btn" onclick="selectCat('shop', this)">Shop</div>
+            <div class="cat-btn" onclick="selectCat('fun', this)">Fun</div>
+            <div class="cat-btn" onclick="selectCat('other', this)">Other</div>
         </div>
-        <button class="btn-primary" style="background:#333" onclick="closePanel()">Cancel</button>
+        <button class="btn-primary" onclick="addExpense()">Confirm</button>
+        <div style="text-align:center; margin-top:15px; color:#555; cursor:pointer;" onclick="closePanel()">Cancel</div>
     </div>
 
     <script>
+        // --- DATA ---
         let data = {
             xp: 0, level: 1, income: 0, balance: 0,
-            ratios: { needs: 50, wants: 30, saves: 20 },
+            mode: 'flex',
             challenge: { active: false, start: null },
-            goal: { name: "", cost: 0, saved: 0, date: "" },
-            expenses: { needs: 0, wants: 0 }
+            goal: { name: "None", cost: 0, saved: 0 },
+            expenses: { needs: 0, wants: 0 },
+            limits: { needs: 0, wants: 0, saveMonthly: 0 }
         };
+        let selectedCategory = '';
+        let chartInst = null;
 
-        let chartInst;
+        // --- THE 100 LEVEL SYSTEM ---
+        function getRankName(lvl) {
+            if (lvl >= 100) return "GOD OF WEALTH";
+            
+            const tiers = [
+                "Iron",       // 1-10
+                "Bronze",     // 11-20
+                "Silver",     // 21-30
+                "Gold",       // 31-40
+                "Platinum",   // 41-50
+                "Emerald",    // 51-60
+                "Diamond",    // 61-70
+                "Master",     // 71-80
+                "Grandmaster",// 81-90
+                "Challenger"  // 91-99
+            ];
+            
+            // Math to determine Tier and Division (1-10)
+            const tierIndex = Math.floor((lvl - 1) / 10);
+            const division = (lvl - 1) % 10 + 1; // 1 to 10
+            
+            // Safety check in case lvl goes crazy
+            if (tierIndex >= tiers.length) return "Challenger " + division;
+
+            return `${tiers[tierIndex]} ${division}`;
+        }
 
         window.onload = () => {
-            if(localStorage.getItem('lootV10')) {
-                data = JSON.parse(localStorage.getItem('lootV10'));
+            if(localStorage.getItem('lootDataV9')) {
+                data = JSON.parse(localStorage.getItem('lootDataV9'));
                 document.getElementById('setupModal').classList.add('hidden');
-                document.getElementById('needsSlider').value = data.ratios.needs;
-                document.getElementById('wantsSlider').value = data.ratios.wants;
                 initChart();
                 updateUI();
+                checkChallengeStatus();
+            } else {
+                document.getElementById('setupModal').classList.remove('hidden');
             }
         };
 
-        function completeSetup() {
-            const inc = parseFloat(document.getElementById('setupIncome').value);
-            if(!inc) return;
-            data.income = inc;
-            data.balance = inc;
-            saveData();
-            location.reload();
-        }
-
-        function adjustRules() {
-            let n = parseInt(document.getElementById('needsSlider').value);
-            let w = parseInt(document.getElementById('wantsSlider').value);
-            
-            if(n + w > 90) { // Keep at least 10% for savings
-                w = 90 - n;
-                document.getElementById('wantsSlider').value = w;
+        // --- RESET LOGIC ---
+        function resetSystem() {
+            if(confirm("⚠ WARNING: Wipe all data? This cannot be undone.")) {
+                localStorage.removeItem('lootDataV9');
+                location.reload();
             }
-            
-            data.ratios.needs = n;
-            data.ratios.wants = w;
-            data.ratios.saves = 100 - (n + w);
-            updateUI();
-            saveData();
         }
 
-        function addExpense(type) {
-            const amt = parseFloat(document.getElementById('amtInput').value);
-            if(!amt) return;
-            if(data.challenge.active) { alert("Challenge Failed!"); data.challenge.active = false; }
-            
-            data.balance -= amt;
-            data.expenses[type] += amt;
-            data.xp += 15;
-            if(data.xp >= 100) { data.xp=0; data.level++; confetti(); }
-            
-            closePanel();
-            document.getElementById('amtInput').value = "";
+        // --- CHALLENGE LOGIC ---
+        function startChallenge() {
+            data.challenge.active = true;
+            data.challenge.start = Date.now();
             saveData();
             updateUI();
+            confetti({ colors: ['#f97316'] });
         }
 
-        function setGoal() {
-            data.goal.name = document.getElementById('newGoalName').value;
-            data.goal.cost = parseFloat(document.getElementById('newGoalCost').value);
-            data.goal.date = document.getElementById('newGoalDate').value;
-            closeGoalModal();
-            saveData();
-            updateUI();
-        }
-
-        function updateUI() {
-            // Limits
-            const nLimit = (data.income * data.ratios.needs) / 100;
-            const wLimit = (data.income * data.ratios.wants) / 100;
-            const sLimit = (data.income * data.ratios.saves) / 100;
-
-            document.getElementById('ratioDisplay').innerText = `${data.ratios.needs} / ${data.ratios.wants} / ${data.ratios.saves}`;
-            document.getElementById('needsLabelText').innerText = `NEEDS (${data.ratios.needs}%)`;
-            document.getElementById('wantsLabelText').innerText = `WANTS (${data.ratios.wants}%)`;
-
-            document.getElementById('needsSpent').innerText = data.expenses.needs;
-            document.getElementById('needsLimit').innerText = nLimit;
-            document.getElementById('wantsSpent').innerText = data.expenses.wants;
-            document.getElementById('wantsLimit').innerText = wLimit;
-
-            document.getElementById('barNeeds').style.width = Math.min(100, (data.expenses.needs/nLimit)*100) + "%";
-            document.getElementById('barWants').style.width = Math.min(100, (data.expenses.wants/wLimit)*100) + "%";
-
-            // Goal/Savings
-            const title = document.getElementById('savingsTitle');
-            const timer = document.getElementById('goalTimer');
-            if(data.goal.cost > 0) {
-                title.innerText = `TARGET: ${data.goal.name.toUpperCase()}`;
-                const savedSoFar = sLimit; // Using monthly save as current progress for simplicity
-                const perc = Math.min(100, (savedSoFar/data.goal.cost)*100);
-                document.getElementById('barSaved').style.width = perc + "%";
-                document.getElementById('savingsText').innerText = `₹${savedSoFar} / ₹${data.goal.cost}`;
-
-                if(data.goal.date) {
-                    const days = Math.ceil((new Date(data.goal.date) - new Date()) / (1000*60*60*24));
-                    if(days > 0) {
-                        const daily = ((data.goal.cost - savedSoFar) / days).toFixed(0);
-                        timer.style.display = "block";
-                        timer.innerText = `⏳ ${days} DAYS LEFT | SAVE ₹${daily}/DAY`;
-                    }
-                }
-            } else {
-                title.innerText = "SAVINGS";
-                document.getElementById('savingsText').innerText = `₹${sLimit}`;
-                document.getElementById('barSaved').style.width = "100%";
-            }
-
-            document.getElementById('displayBalance').innerText = `₹${data.balance}`;
-            document.getElementById('rankBadge').innerText = `Level ${data.level}`;
-            document.getElementById('xpBar').style.width = data.xp + "%";
-            
-            renderChallenge();
-            if(chartInst) {
-                chartInst.data.datasets[0].data = [data.balance, data.income - data.balance];
-                chartInst.update();
+        function checkChallengeStatus() {
+            if (!data.challenge.active) return;
+            const now = Date.now();
+            const diff = now - data.challenge.start;
+            const daysPassed = Math.floor(diff / (1000 * 60 * 60 * 24));
+            if (daysPassed >= 7) {
+                data.challenge.active = false; data.challenge.start = null;
+                alert("CHALLENGE COMPLETE! +200 XP");
+                gainXP(200);
             }
         }
 
         function renderChallenge() {
             const box = document.getElementById('challengeBox');
             if(!data.challenge.active) {
-                box.innerHTML = `<button class="btn-primary" style="background:var(--fire)" onclick="startChallenge()">Start No-Spend Week</button>`;
+                box.className = "challenge-box c-inactive";
+                box.innerHTML = `
+                    <div style="color:#aaa; font-size:0.9rem; margin-bottom:10px;">PROVE YOUR DISCIPLINE</div>
+                    <button class="c-btn" onclick="startChallenge()">Start No-Spend Week</button>
+                `;
             } else {
-                box.innerHTML = `<div style="color:var(--fire); font-weight:800;">🔥 NO-SPEND STREAK ACTIVE</div>`;
+                const now = Date.now();
+                const diff = now - data.challenge.start;
+                const daysPassed = Math.min(7, Math.floor(diff / (1000 * 60 * 60 * 24)));
+                const perc = (daysPassed / 7) * 100;
+                box.className = "challenge-box c-active";
+                box.innerHTML = `
+                    <div class="streak-info">
+                        <span style="color:var(--fire)"><i class="fa-solid fa-fire"></i> STREAK ACTIVE</span>
+                        <span class="streak-days">${daysPassed}/7 DAYS</span>
+                    </div>
+                    <div class="streak-bar-bg"><div class="streak-bar-fill" style="width:${perc}%"></div></div>
+                    <div style="font-size:0.7rem; color:#666; margin-top:8px;">Adding any expense resets this.</div>
+                `;
             }
         }
 
-        function startChallenge() { data.challenge.active = true; saveData(); updateUI(); }
+        // --- CORE FUNCTIONS ---
+        function completeSetup() {
+            const inc = parseFloat(document.getElementById('setupIncome').value);
+            if(!inc) return;
+            data.income = inc;
+            data.balance = inc;
+            data.limits.needs = Math.floor(inc * 0.50);
+            data.limits.wants = Math.floor(inc * 0.30);
+            data.limits.saveMonthly = Math.floor(inc * 0.20);
+            data.goal.saved = data.limits.saveMonthly;
+            data.balance -= data.limits.saveMonthly;
+            saveData();
+            document.getElementById('setupModal').classList.add('hidden');
+            initChart();
+            updateUI();
+        }
+
+        function switchTab(mode) { data.mode = mode; saveData(); updateUI(); }
+
+        function addExpense() {
+            const amt = parseFloat(document.getElementById('amtInput').value);
+            if(!amt || !selectedCategory) return;
+            if (data.challenge.active) { alert("CHALLENGE FAILED! Streak reset."); data.challenge.active = false; }
+            data.balance -= amt;
+            if(['food', 'travel'].includes(selectedCategory)) data.expenses.needs += amt;
+            else data.expenses.wants += amt;
+            gainXP(15);
+            closePanel();
+            document.getElementById('amtInput').value = '';
+            document.getElementById('descInput').value = '';
+            saveData();
+            updateUI();
+        }
+
+        function gainXP(amt) {
+            data.xp += amt;
+            if(data.xp >= 100) { 
+                data.xp = 0; 
+                data.level++; 
+                confetti(); 
+                alert(`RANK UP! You are now ${getRankName(data.level)}`);
+            }
+            saveData();
+            updateUI();
+        }
+
+        function updateUI() {
+            // UPDATED RANK LOGIC
+            const rankName = getRankName(data.level);
+            document.getElementById('rankBadge').innerText = rankName;
+            document.getElementById('xpBar').style.width = `${data.xp}%`;
+
+            document.getElementById('displayBalance').innerText = `₹${data.balance}`;
+            chartInst.data.datasets[0].data = [data.balance, (data.income - data.balance)];
+            chartInst.update();
+            document.getElementById('tabTarget').classList.toggle('active', data.mode === 'target');
+            document.getElementById('tabFlex').classList.toggle('active', data.mode === 'flex');
+            renderChallenge();
+            updateBar('needsSpent', 'needsLimit', 'barNeeds', data.expenses.needs, data.limits.needs);
+            updateBar('wantsSpent', 'wantsLimit', 'barWants', data.expenses.wants, data.limits.wants);
+            
+            const saveBar = document.getElementById('barSaved');
+            const goalBtn = document.getElementById('setGoalBtn');
+            const title = document.getElementById('savingsTitle');
+            const txt = document.getElementById('savingsText');
+
+            if (data.mode === 'flex') {
+                title.innerText = "FLEX FUND";
+                txt.innerText = `₹${data.goal.saved} Saved`;
+                saveBar.style.width = '100%';
+                saveBar.style.backgroundColor = '#10b981';
+                goalBtn.style.display = 'none';
+            } else {
+                title.innerText = data.goal.cost > 0 ? `TARGET: ${data.goal.name.toUpperCase()}` : "NO TARGET";
+                goalBtn.style.display = 'block';
+                if (data.goal.cost > 0) {
+                    txt.innerText = `₹${data.goal.saved} / ₹${data.goal.cost}`;
+                    let perc = Math.min(100, (data.goal.saved / data.goal.cost) * 100);
+                    saveBar.style.width = `${perc}%`;
+                    saveBar.style.backgroundColor = perc >= 100 ? '#eab308' : '#10b981';
+                } else {
+                    txt.innerText = "Set Goal";
+                    saveBar.style.width = '0%';
+                }
+            }
+        }
+
+        function updateBar(vId, lId, bId, val, limit) {
+            document.getElementById(vId).innerText = val;
+            document.getElementById(lId).innerText = limit;
+            let p = (val/limit)*100;
+            document.getElementById(bId).style.width = `${Math.min(p, 100)}%`;
+            if(p > 100) document.getElementById(bId).style.backgroundColor = '#ef4444';
+            else document.getElementById(bId).style.backgroundColor = bId.includes('Needs') ? '#3b82f6' : '#8b5cf6';
+        }
+
+        function openPanel() { document.getElementById('addPanel').classList.add('open'); }
+        function closePanel() { document.getElementById('addPanel').classList.remove('open'); }
+        function selectCat(cat, btn) {
+            selectedCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+        function openGoalModal() { document.getElementById('goalModal').classList.remove('hidden'); }
+        function closeGoalModal() { document.getElementById('goalModal').classList.add('hidden'); }
+        function setGoal() {
+            const name = document.getElementById('newGoalName').value;
+            const cost = parseFloat(document.getElementById('newGoalCost').value);
+            if(name && cost) { data.goal.name = name; data.goal.cost = cost; closeGoalModal(); saveData(); updateUI(); }
+        }
         function initChart() {
             const ctx = document.getElementById('mainChart').getContext('2d');
             chartInst = new Chart(ctx, {
                 type: 'doughnut',
-                data: { datasets: [{ data: [100, 0], backgroundColor: ['#fff', '#222'], borderWidth: 0, cutout: '85%' }] },
-                options: { plugins: { legend: { display: false } } }
+                data: { labels: ['Avail', 'Spent'], datasets: [{ data: [100, 0], backgroundColor: ['#fff', '#222'], borderWidth: 0, cutout: '85%' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
         }
-        function openPanel() { document.getElementById('addPanel').classList.add('open'); }
-        function closePanel() { document.getElementById('addPanel').classList.remove('open'); }
-        function openGoalModal() { document.getElementById('goalModal').classList.remove('hidden'); }
-        function closeGoalModal() { document.getElementById('goalModal').classList.add('hidden'); }
-        function resetSystem() { if(confirm("Delete all?")) { localStorage.clear(); location.reload(); } }
-        function saveData() { localStorage.setItem('lootV10', JSON.stringify(data)); }
+        function saveData() { localStorage.setItem('lootDataV9', JSON.stringify(data)); }
     </script>
 </body>
 </html>
