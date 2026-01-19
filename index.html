@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CashFlow Capitals</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+:root{
+  --bg:#f8fafc;--card:#fff;--text:#0f172a;
+  --primary:#2563eb;--accent:#7c3aed
+}
+body.dark{
+  --bg:#020617;--card:#0f172a;--text:#e5e7eb
+}
+*{box-sizing:border-box;font-family:Inter,system-ui}
+body{margin:0;background:var(--bg);color:var(--text)}
+header{
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  color:white;padding:18px;text-align:center
+}
+.container{max-width:520px;margin:auto;padding:16px}
+.card{
+  background:var(--card);border-radius:14px;
+  padding:16px;margin-bottom:16px;
+  box-shadow:0 6px 20px rgba(0,0,0,.1)
+}
+button,input,select{
+  width:100%;padding:12px;margin-top:8px;
+  border-radius:10px;border:1px solid #94a3b8
+}
+button{
+  background:var(--primary);color:white;
+  border:none;font-weight:600;cursor:pointer
+}
+button.secondary{background:#64748b}
+button.danger{background:#dc2626}
+.hidden{display:none}
+.stat{display:flex;justify-content:space-between;margin-top:6px;padding:4px 0}
+.tip{
+  background:linear-gradient(135deg,#22c55e,#16a34a);
+  color:white;padding:14px;border-radius:12px
+}
+#rewardsList .tip{margin-top:8px}
+.chart-container{
+  position:relative;
+  height:280px;
+  width:100%;
+  margin:10px 0
+}
+.spending-item{
+  display:flex;justify-content:space-between;
+  padding:10px;margin-top:8px;
+  background:#f1f5f9;border-radius:8px
+}
+body.dark .spending-item{background:#1e293b}
+</style>
+</head>
+
+<body>
+<header>
+<h1>💰 CashFlow Capitals</h1>
+<p>Regular & Irregular Money Manager</p>
+</header>
+
+<div class="container">
+
+<div class="card">
+<button onclick="toggleDark()">🌓 Toggle Dark Mode</button>
+</div>
+
+<div class="card">
+<button onclick="setMode('regular')">💼 Regular Income</button>
+<button class="secondary" onclick="setMode('irregular')">🎁 Irregular Income</button>
+</div>
+
+<!-- REGULAR MODE -->
+<div id="regular" class="hidden">
+
+<div class="card">
+<h3>Monthly Income</h3>
+<input id="income" type="number" placeholder="Income">
+<button onclick="saveIncome()">Save</button>
+</div>
+
+<div class="card">
+<h3>Dashboard</h3>
+<div class="stat"><span>Balance</span><b>₹<span id="balance">0</span></b></div>
+<div class="stat"><span>Daily Limit</span><b>₹<span id="daily">0</span></b></div>
+</div>
+
+<div class="card">
+<h3>Add Expense</h3>
+<input id="amount" type="number" placeholder="Amount">
+<select id="category">
+<option>Food</option>
+<option>Shopping</option>
+<option>Entertainment</option>
+</select>
+<button onclick="addExpense()">Add</button>
+</div>
+
+<div class="card">
+<div class="chart-container">
+<canvas id="regularChart"></canvas>
+</div>
+</div>
+
+<div class="card">
+<h3>🤖 Smart Tips</h3>
+<div class="tip" id="regularTips"></div>
+</div>
+
+<div class="card">
+<button class="danger" onclick="resetRegular()">Reset Regular Mode</button>
+</div>
+
+</div>
+
+<!-- IRREGULAR MODE -->
+<div id="irregular" class="hidden">
+
+<div class="card">
+<h3>💎 Savings Goal Planner</h3>
+<input id="savingFor" type="text" placeholder="What are you saving for? (e.g., New Phone)">
+<input id="targetAmount" type="number" placeholder="How much does it cost? (₹)">
+<input id="currentMoney" type="number" placeholder="How much money do you have now? (₹)">
+<input id="futureIncome" type="number" placeholder="How much money will you get? (₹)">
+<input id="timeAmount" type="number" placeholder="In how much time?">
+<select id="timeUnit">
+<option value="days">Days</option>
+<option value="weeks">Weeks</option>
+<option value="months">Months</option>
+<option value="years">Years</option>
+</select>
+<button onclick="calculatePlan()">📊 Calculate Savings Plan</button>
+</div>
+
+<div id="planResults" class="hidden">
+<div class="card">
+<h3>📋 Your Savings Plan for "<span id="goalName"></span>"</h3>
+<div class="stat"><span>Target Amount</span><b>₹<span id="targetShow"></span></b></div>
+<div class="stat"><span>You have now</span><b>₹<span id="currentShow"></span></b></div>
+<div class="stat"><span>You will receive</span><b>₹<span id="futureShow"></span></b></div>
+<div class="stat"><span>Total Available</span><b>₹<span id="totalAvailable"></span></b></div>
+<div class="stat"><span>Left after purchase</span><b>₹<span id="leftOver"></span></b></div>
+</div>
+
+<div class="card">
+<h3>💰 Daily Spending Budget Breakdown</h3>
+<div id="spendingBreakdown"></div>
+</div>
+
+<div class="card">
+<h3>📊 Spending Budget Chart</h3>
+<div class="chart-container">
+<canvas id="budgetChart"></canvas>
+</div>
+</div>
+
+<div class="card">
+<h3>📈 Savings Timeline</h3>
+<div class="chart-container">
+<canvas id="timelineChart"></canvas>
+</div>
+</div>
+
+<div class="card">
+<h3>💸 Money Allocation</h3>
+<div class="chart-container">
+<canvas id="irrChart"></canvas>
+</div>
+</div>
+
+<div class="card">
+<h3>🏆 Rewards Progress</h3>
+<div id="rewardsList"></div>
+</div>
+</div>
+
+<div class="card">
+<h3>🤖 Smart Financial Tips for Teens</h3>
+<div class="tip" id="irrTips"></div>
+<button class="secondary" onclick="nextTip()" style="margin-top:12px">💡 Next Tip</button>
+</div>
+
+<div class="card">
+<button class="danger" onclick="resetIrregular()">Reset Irregular Mode</button>
+</div>
+
+</div>
+
+</div>
+
+<script>
+let charts = {
+  budget: null,
+  timeline: null,
+  allocation: null,
+  regular: null
+};
+
+let state={
+  dark:false,mode:null,
+  income:0,expenses:[],
+  savingsGoal:null,
+  tipIndex:0
+};
+
+const teenTips=[
+  "💰 Save at least 20% of any money you receive - your future self will thank you!",
+  "🎯 Set specific savings goals instead of just saving randomly. It keeps you motivated!",
+  "📱 Avoid impulse buying - wait 24 hours before purchasing non-essentials.",
+  "🏦 Start an emergency fund with at least ₹1000 for unexpected situations.",
+  "📚 Invest in yourself - books, courses, and skills pay the best returns!",
+  "🛍️ Compare prices before buying. A few minutes of research can save hundreds!",
+  "💳 Learn the difference between wants and needs. Prioritize needs first!",
+  "🎁 Consider giving gifts of time or handmade items instead of expensive purchases.",
+  "📊 Track every expense for a month - you'll be surprised where money goes!",
+  "🔄 Before buying something new, ask: Can I borrow, rent, or buy it second-hand?",
+  "⏰ Time is money! Start saving early - even small amounts grow with time.",
+  "🎮 Set limits on entertainment spending - find free or low-cost fun activities!",
+  "👥 Don't try to keep up with friends' spending. Everyone's financial situation is different.",
+  "💡 Every ₹100 saved today could be worth much more in the future!",
+  "🎓 The best investment is in your education and personal development!"
+];
+
+function toggleDark(){
+ state.dark=!state.dark;
+ document.body.classList.toggle("dark");
+}
+
+function setMode(m){
+ state.mode=m;
+ document.getElementById("regular").classList.toggle("hidden",m!=="regular");
+ document.getElementById("irregular").classList.toggle("hidden",m!=="irregular");
+ update();
+}
+
+function saveIncome(){
+  state.income=+document.getElementById('income').value;
+  update();
+}
+
+function addExpense(){
+ let amtInput = document.getElementById('amount');
+ let catInput = document.getElementById('category');
+ if(amtInput.value<=0)return;
+ state.expenses.push({a:+amtInput.value,c:catInput.value});
+ amtInput.value="";
+ update();
+}
+
+function resetRegular(){
+ if(confirm("Reset regular data?")){
+  state.income=0;
+  state.expenses=[];
+  update();
+ }
+}
+
+function resetIrregular(){
+ if(confirm("Reset irregular data?")){
+  state.savingsGoal=null;
+  document.getElementById("planResults").classList.add("hidden");
+  document.getElementById('savingFor').value="";
+  document.getElementById('targetAmount').value="";
+  document.getElementById('currentMoney').value="";
+  document.getElementById('futureIncome').value="";
+  document.getElementById('timeAmount').value="";
+  
+  if(charts.budget) charts.budget.destroy();
+  if(charts.timeline) charts.timeline.destroy();
+  if(charts.allocation) charts.allocation.destroy();
+  
+  update();
+ }
+}
+
+function update(){
+ if(state.mode==="regular"){
+  document.getElementById('income').value=state.income;
+  let spent=state.expenses.reduce((a,b)=>a+b.a,0);
+  document.getElementById('balance').innerText=state.income-spent;
+  document.getElementById('daily').innerText=Math.floor((state.income-spent)/30);
+  drawRegular();
+ }
+ tips();
+}
+
+function drawRegular(){
+ if(charts.regular) charts.regular.destroy();
+ 
+ let cats={Food:0,Shopping:0,Entertainment:0};
+ state.expenses.forEach(e=>cats[e.c]+=e.a);
+ 
+ let canvas=document.getElementById("regularChart");
+ if(!canvas) return;
+ 
+ charts.regular = new Chart(canvas, {
+  type:"bar",
+  data:{
+   labels:Object.keys(cats),
+   datasets:[{
+    data:Object.values(cats),
+    backgroundColor:"#2563eb"
+   }]
+  },
+  options:{
+   responsive:true,
+   maintainAspectRatio:true,
+   plugins:{legend:{display:false}}
+  }
+ });
+}
+
+function tips(){
+ if(state.mode==="regular"){
+  let spent=state.expenses.reduce((a,b)=>a+b.a,0);
+  let p=spent/state.income*100||0;
+  document.getElementById('regularTips').innerText=
+   p<50?"Great control! Save more.":
+   p<80?"Balanced spending.":
+   "High spending! Cut entertainment.";
+ }else{
+  document.getElementById('irrTips').innerText=teenTips[state.tipIndex];
+ }
+}
+
+function nextTip(){
+ state.tipIndex=(state.tipIndex+1)%teenTips.length;
+ document.getElementById('irrTips').innerText=teenTips[state.tipIndex];
+}
+
+function calculatePlan(){
+ let target=+document.getElementById('targetAmount').value;
+ let current=+document.getElementById('currentMoney').value;
+ let future=+document.getElementById('futureIncome').value;
+ let time=+document.getElementById('timeAmount').value;
+ let unit=document.getElementById('timeUnit').value;
+ let goal=document.getElementById('savingFor').value||"Goal";
+ 
+ if(!target||!time||target<=0||current<0||future<0){
+  alert("Please fill all fields correctly!");
+  return;
+ }
+ 
+ let totalMoney=current+future;
+ 
+ if(totalMoney<target){
+  alert("You don't have enough money even with future income! You need ₹"+(target-totalMoney)+" more.");
+  return;
+ }
+ 
+ let leftOver=totalMoney-target;
+ 
+ let days;
+ if(unit==="days")days=time;
+ else if(unit==="weeks")days=time*7;
+ else if(unit==="months")days=time*30;
+ else days=time*365;
+ 
+ let dailyBudget=leftOver/days;
+ let weeklyBudget=dailyBudget*7;
+ let monthlyBudget=dailyBudget*30;
+ 
+ state.savingsGoal={
+  goal,target,current,future,leftOver,
+  dailyBudget,weeklyBudget,monthlyBudget,days
+ };
+ 
+ document.getElementById('goalName').innerText=goal;
+ document.getElementById('targetShow').innerText=target;
+ document.getElementById('currentShow').innerText=current;
+ document.getElementById('futureShow').innerText=future;
+ document.getElementById('totalAvailable').innerText=totalMoney;
+ document.getElementById('leftOver').innerText=leftOver;
+ 
+ document.getElementById("planResults").classList.remove("hidden");
+ 
+ showSpendingBreakdown();
+ drawBudgetChart();
+ drawTimelineChart();
+ drawAllocationChart();
+ showRewards();
+}
+
+function showSpendingBreakdown(){
+ let daily=state.savingsGoal.dailyBudget;
+ 
+ let breakdown={
+  "🍔 Food":Math.round(daily*0.3),
+  "👕 Clothes":Math.round(daily*0.2),
+  "📚 Books":Math.round(daily*0.15),
+  "🎮 Toys/Games":Math.round(daily*0.15),
+  "🛒 Other Essentials":Math.round(daily*0.2)
+ };
+ 
+ let html="<p><b>You can spend per day:</b></p>";
+ for(let item in breakdown){
+  html+=`<div class="spending-item"><span>${item}</span><b>₹${breakdown[item]}</b></div>`;
+ }
+ 
+ document.getElementById("spendingBreakdown").innerHTML=html;
+}
+
+function drawBudgetChart(){
+ try {
+   console.log("Drawing budget chart...");
+   if(charts.budget) {
+     charts.budget.destroy();
+     charts.budget = null;
+   }
+   
+   let daily=state.savingsGoal.dailyBudget;
+   console.log("Daily budget:", daily);
+   
+   let budgetData=[
+    Math.round(daily*0.3),
+    Math.round(daily*0.2),
+    Math.round(daily*0.15),
+    Math.round(daily*0.15),
+    Math.round(daily*0.2)
+   ];
+   
+   console.log("Budget data:", budgetData);
+   
+   let canvas=document.getElementById("budgetChart");
+   console.log("Canvas element:", canvas);
+   if(!canvas) {
+     alert("Budget chart canvas not found!");
+     return;
+   }
+   
+   charts.budget = new Chart(canvas, {
+    type:"pie",
+    data:{
+     labels:["Food","Clothes","Books","Toys/Games","Essentials"],
+     datasets:[{
+      data:budgetData,
+      backgroundColor:["#ef4444","#8b5cf6","#3b82f6","#f59e0b","#10b981"]
+     }]
+    },
+    options:{
+     responsive:true,
+     maintainAspectRatio:true,
+     plugins:{
+      legend:{position:'bottom'}
+     }
+    }
+   });
+   
+   console.log("Budget chart created successfully!");
+ } catch(error) {
+   console.error("Error creating budget chart:", error);
+   alert("Budget chart error: " + error.message);
+ }
+}
+
+function drawTimelineChart(){
+ if(charts.timeline) {
+   charts.timeline.destroy();
+   charts.timeline = null;
+ }
+ 
+ let perWeek=Math.round(state.savingsGoal.weeklyBudget);
+ let perMonth=Math.round(state.savingsGoal.monthlyBudget);
+ let perYear=Math.round(perMonth*12);
+ 
+ let canvas=document.getElementById("timelineChart");
+ if(!canvas) return;
+ 
+ charts.timeline = new Chart(canvas, {
+  type:"bar",
+  data:{
+   labels:["Per Week","Per Month","Per Year"],
+   datasets:[{
+    label:"Available to Spend (₹)",
+    data:[perWeek, perMonth, perYear],
+    backgroundColor:["#22c55e","#3b82f6","#a855f7"]
+   }]
+  },
+  options:{
+   responsive:true,
+   maintainAspectRatio:true,
+   plugins:{legend:{display:false}}
+  }
+ });
+}
+
+function drawAllocationChart(){
+ if(charts.allocation) {
+   charts.allocation.destroy();
+   charts.allocation = null;
+ }
+ 
+ let current=state.savingsGoal.current;
+ let future=state.savingsGoal.future;
+ let target=state.savingsGoal.target;
+ let total=current+future;
+ let leftover=Math.max(0,total-target);
+ 
+ let canvas=document.getElementById("irrChart");
+ if(!canvas) return;
+ 
+ charts.allocation = new Chart(canvas, {
+  type:"doughnut",
+  data:{
+   labels:["For Purchase","Left Over"],
+   datasets:[{
+    data:[target, leftover],
+    backgroundColor:["#ef4444","#22c55e"]
+   }]
+  },
+  options:{
+   responsive:true,
+   maintainAspectRatio:true,
+   plugins:{
+    legend:{position:'bottom'}
+   }
+  }
+ });
+}
+
+function showRewards(){
+ let rewards=[
+  {at:1000,text:"🥉 Bronze Saver - First ₹1000 saved!"},
+  {at:5000,text:"🥈 Silver Saver - ₹5000 milestone reached!"},
+  {at:10000,text:"🥇 Gold Saver - ₹10,000 saved! Amazing!"},
+  {at:25000,text:"💎 Diamond Saver - ₹25,000! You're unstoppable!"},
+  {at:50000,text:"👑 Elite Saver - ₹50,000! Financial Master!"}
+ ];
+ 
+ let saved=state.savingsGoal.current;
+ let html="";
+ rewards.forEach(r=>{
+  if(saved>=r.at){
+   html+=`<div class="tip" style="margin-top:8px">✅ ${r.text}</div>`;
+  }else{
+   let need=r.at-saved;
+   html+=`<div style="padding:10px;margin-top:8px;background:#334155;border-radius:8px;color:#e5e7eb">
+    🔒 ${r.text}<br><small>Save ₹${need} more to unlock!</small>
+   </div>`;
+  }
+ });
+ 
+ document.getElementById("rewardsList").innerHTML=html;
+}
+
+// Initialize
+tips();
+</script>
+
+</body>
+</html>
