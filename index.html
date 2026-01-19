@@ -1,785 +1,455 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CashFlow Capitals</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CASH-FLOW-CAPITALS</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-<style>
-:root{
-  --bg:#f8fafc;--card:#fff;--text:#0f172a;
-  --primary:#2563eb;--accent:#7c3aed
-}
-body.dark{
-  --bg:#020617;--card:#0f172a;--text:#e5e7eb
-}
-*{box-sizing:border-box;font-family:Inter,system-ui}
-body{margin:0;background:var(--bg);color:var(--text)}
-header{
-  background:linear-gradient(135deg,var(--primary),var(--accent));
-  color:white;padding:18px;text-align:center
-}
-.container{max-width:520px;margin:auto;padding:16px}
-.card{
-  background:var(--card);border-radius:14px;
-  padding:16px;margin-bottom:16px;
-  box-shadow:0 6px 20px rgba(0,0,0,.1)
-}
-button,input,select{
-  width:100%;padding:12px;margin-top:8px;
-  border-radius:10px;border:1px solid #94a3b8
-}
-button{
-  background:var(--primary);color:white;
-  border:none;font-weight:600;cursor:pointer
-}
-button.secondary{background:#64748b}
-button.danger{background:#dc2626}
-.hidden{display:none}
-.stat{display:flex;justify-content:space-between;margin-top:6px;padding:4px 0}
-.tip{
-  background:linear-gradient(135deg,#22c55e,#16a34a);
-  color:white;padding:14px;border-radius:12px
-}
-#rewardsList .tip{margin-top:8px}
-.chart-container{
-  position:relative;
-  height:280px;
-  width:100%;
-  margin:10px 0
-}
-.spending-item{
-  display:flex;justify-content:space-between;
-  padding:10px;margin-top:8px;
-  background:#f1f5f9;border-radius:8px
-}
-body.dark .spending-item{background:#1e293b}
-</style>
+    <style>
+        :root {
+            --bg: #050505; --card: #111;
+            --xp: #eab308; /* Gold */
+            --needs: #3b82f6; /* Blue */
+            --wants: #8b5cf6; /* Purple */
+            --saves: #10b981; /* Green */
+            --fire: #f97316; /* Orange */
+            --danger: #ef4444; /* Red */
+            --text: #fff; --dim: #666;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Rajdhani', sans-serif; user-select: none; }
+        body { background: var(--bg); color: var(--text); padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; position: relative; padding-bottom: 80px; }
+
+        /* --- 1. GAMIFICATION BAR --- */
+        .gamer-hud {
+            width: 100%; max-width: 500px; display: flex; align-items: center; gap: 15px;
+            margin-bottom: 15px; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 50px;
+            border: 1px solid #333; margin-top: 10px;
+        }
+        .rank-badge {
+            background: var(--xp); color: #000; font-weight: 800; padding: 5px 15px;
+            border-radius: 20px; font-size: 0.9rem; white-space: nowrap;
+            box-shadow: 0 0 10px var(--xp);
+        }
+        .xp-track { width: 100%; height: 8px; background: #333; border-radius: 10px; overflow: hidden; }
+        .xp-fill { height: 100%; background: var(--xp); width: 0%; transition: width 0.5s ease; box-shadow: 0 0 10px var(--xp); }
+        .level-text { font-size: 0.8rem; color: var(--xp); font-weight: 700; margin-right: 10px; }
+
+        /* --- 2. TABS --- */
+        .tabs { display: flex; gap: 10px; width: 100%; max-width: 500px; margin-bottom: 15px; }
+        .tab {
+            flex: 1; padding: 12px; background: #0f0f0f; border: 1px solid #333;
+            color: #555; font-weight: 800; cursor: pointer; border-radius: 12px;
+            transition: 0.3s; text-transform: uppercase; text-align: center; letter-spacing: 1px;
+        }
+        .tab.active {
+            border-color: var(--saves); color: var(--saves);
+            background: rgba(16, 185, 129, 0.1); box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+        }
+
+        /* --- 3. CHALLENGE BOX --- */
+        .challenge-box {
+            width: 100%; max-width: 500px; margin-bottom: 20px;
+            background: #1a0b05; border: 1px solid var(--fire);
+            border-radius: 12px; padding: 15px; text-align: center;
+            position: relative; overflow: hidden; transition: 0.3s;
+        }
+        .c-inactive .c-btn {
+            background: var(--fire); color: white; border: none; padding: 10px 20px;
+            font-weight: 800; border-radius: 8px; cursor: pointer; text-transform: uppercase;
+        }
+        .c-active { box-shadow: 0 0 20px rgba(249, 115, 22, 0.2); }
+        .streak-info { display: flex; justify-content: space-between; align-items: center; z-index: 2; position: relative; }
+        .streak-days { font-size: 1.5rem; font-weight: 800; color: var(--fire); }
+        .streak-bar-bg { width: 100%; height: 8px; background: #331f1f; margin-top: 10px; border-radius: 5px; position: relative; z-index: 2;}
+        .streak-bar-fill { height: 100%; background: var(--fire); width: 0%; border-radius: 5px; transition: width 0.5s; }
+        
+        /* --- 4. MAIN CHART --- */
+        .hud-chart {
+            width: 100%; max-width: 500px; height: 240px;
+            position: relative; margin-bottom: 20px;
+        }
+        .chart-center {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .balance-big { font-size: 2.2rem; font-weight: 800; color: #fff; }
+        .balance-label { font-size: 0.8rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
+
+        /* --- 5. BUDGET BARS --- */
+        .rule-container { width: 100%; max-width: 500px; display: grid; gap: 15px; margin-bottom: 25px; }
+        .rule-card {
+            background: var(--card); padding: 15px; border-radius: 12px;
+            border-left: 4px solid #555; position: relative; overflow: hidden;
+        }
+        .rule-header { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 5px; font-weight: 700; z-index: 2; position: relative;}
+        .rule-bar-bg { background: rgba(255,255,255,0.05); height: 6px; border-radius: 10px; width: 100%; position: relative; z-index: 2; }
+        .rule-bar-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease; }
+        
+        .rc-needs { border-color: var(--needs); } .rc-needs .rule-bar-fill { background: var(--needs); }
+        .rc-wants { border-color: var(--wants); } .rc-wants .rule-bar-fill { background: var(--wants); }
+        .rc-saves { border-color: var(--saves); } .rc-saves .rule-bar-fill { background: var(--saves); }
+
+        /* --- 6. ADD BUTTON & PANELS --- */
+        .fab {
+            position: fixed; bottom: 25px; right: 25px;
+            width: 60px; height: 60px; background: #fff; color: #000;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; box-shadow: 0 0 20px rgba(255,255,255,0.3); cursor: pointer; z-index: 90;
+            transition: transform 0.2s;
+        }
+        .fab:hover { transform: scale(1.1); }
+
+        .panel {
+            position: fixed; bottom: 0; left: 0; width: 100%; background: #151515;
+            padding: 30px; border-radius: 25px 25px 0 0; transform: translateY(100%);
+            transition: 0.3s; z-index: 95; border-top: 2px solid var(--xp);
+        }
+        .panel.open { transform: translateY(0); }
+        
+        .cat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 20px; }
+        .cat-btn {
+            background: #222; color: #888; border: 1px solid #333; padding: 12px;
+            border-radius: 8px; font-size: 0.8rem; cursor: pointer; text-align: center; font-weight: 600;
+        }
+        .cat-btn.selected { background: var(--xp); color: black; border-color: var(--xp); }
+
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 100;
+            display: flex; justify-content: center; align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        .modal.hidden { display: none; }
+        .setup-card {
+            background: var(--card); border: 1px solid var(--needs);
+            padding: 25px; border-radius: 20px; width: 90%; max-width: 400px;
+            text-align: center; box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);
+        }
+        .input-std {
+            width: 100%; padding: 15px; margin-bottom: 10px; background: #000;
+            border: 1px solid #333; color: white; border-radius: 8px; font-size: 1rem; outline: none;
+        }
+        .btn-primary {
+            width: 100%; padding: 15px; background: var(--needs); color: white; margin-top: 10px;
+            border: none; border-radius: 8px; font-weight: 800; font-size: 1rem; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .edit-link { font-size: 0.8rem; text-decoration: underline; color: #666; cursor: pointer; margin-top: 5px; display: inline-block; }
+
+        /* --- RESET BUTTON STYLE --- */
+        .reset-zone {
+            margin-top: 30px; margin-bottom: 20px;
+            color: #333; font-size: 0.7rem; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 2px; transition: color 0.3s;
+        }
+        .reset-zone:hover { color: var(--danger); }
+
+    </style>
 </head>
-
 <body>
-<header>
-<h1>💰 CashFlow Capitals</h1>
-<p>Regular & Irregular Money Manager</p>
-</header>
 
-<div class="container">
+    <div class="modal" id="setupModal">
+        <div class="setup-card">
+            <h2 style="margin-bottom:20px; color:#fff;">System Init</h2>
+            <input type="number" id="setupIncome" class="input-std" placeholder="Monthly Pocket Money">
+            <button class="btn-primary" onclick="completeSetup()">Start Ledger</button>
+        </div>
+    </div>
 
-<div class="card">
-<button onclick="toggleDark()">🌓 Toggle Dark Mode</button>
-</div>
+    <div class="modal hidden" id="goalModal">
+        <div class="setup-card" style="border-color: var(--saves);">
+            <h2 style="margin-bottom:20px; color:#fff;">Set Target</h2>
+            <input type="text" id="newGoalName" class="input-std" placeholder="Item Name">
+            <input type="number" id="newGoalCost" class="input-std" placeholder="Cost">
+            <button class="btn-primary" style="background:var(--saves)" onclick="setGoal()">Save Target</button>
+            <div class="edit-link" onclick="closeGoalModal()">Cancel</div>
+        </div>
+    </div>
 
-<div class="card">
-<button onclick="setMode('regular')">💼 Regular Income</button>
-<button class="secondary" onclick="setMode('irregular')">🎁 Irregular Income</button>
-<button class="secondary" onclick="setMode('nospend')" style="background:#dc2626">🚫 No Spend Challenge</button>
-</div>
+    <div class="gamer-hud">
+        <div class="rank-badge" id="rankBadge">Level 1</div>
+        <div class="xp-track"><div class="xp-fill" id="xpBar"></div></div>
+        <div class="level-text">XP</div>
+    </div>
 
-<!-- REGULAR MODE -->
-<div id="regular" class="hidden">
+    <div class="tabs">
+        <div class="tab" id="tabTarget" onclick="switchTab('target')"><i class="fa-solid fa-crosshairs"></i> Target</div>
+        <div class="tab" id="tabFlex" onclick="switchTab('flex')"><i class="fa-solid fa-shield-halved"></i> Flex</div>
+    </div>
 
-<div class="card">
-<h3>Monthly Income</h3>
-<input id="income" type="number" placeholder="Income">
-<button onclick="saveIncome()">Save</button>
-</div>
+    <div class="challenge-box" id="challengeBox"></div>
 
-<div class="card">
-<h3>Dashboard</h3>
-<div class="stat"><span>Balance</span><b>₹<span id="balance">0</span></b></div>
-<div class="stat"><span>Daily Limit</span><b>₹<span id="daily">0</span></b></div>
-</div>
+    <div class="hud-chart">
+        <canvas id="mainChart"></canvas>
+        <div class="chart-center">
+            <div class="balance-label">WALLET</div>
+            <div class="balance-big" id="displayBalance">₹0</div>
+        </div>
+    </div>
 
-<div class="card">
-<h3>Add Expense</h3>
-<input id="amount" type="number" placeholder="Amount">
-<select id="category">
-<option>Food</option>
-<option>Shopping</option>
-<option>Entertainment</option>
-</select>
-<button onclick="addExpense()">Add</button>
-</div>
+    <div class="rule-container">
+        <div class="rule-card rc-needs">
+            <div class="rule-header"><span>NEEDS (50%)</span><span><span id="needsSpent">0</span> / <span id="needsLimit">0</span></span></div>
+            <div class="rule-bar-bg"><div class="rule-bar-fill" id="barNeeds" style="width:0%"></div></div>
+        </div>
+        <div class="rule-card rc-wants">
+            <div class="rule-header"><span>WANTS (30%)</span><span><span id="wantsSpent">0</span> / <span id="wantsLimit">0</span></span></div>
+            <div class="rule-bar-bg"><div class="rule-bar-fill" id="barWants" style="width:0%"></div></div>
+        </div>
+        <div class="rule-card rc-saves">
+            <div class="rule-header"><span id="savingsTitle">SAVINGS</span><span id="savingsText">0</span></div>
+            <div class="rule-bar-bg"><div class="rule-bar-fill" id="barSaved" style="width:0%"></div></div>
+            <div id="setGoalBtn" class="edit-link" style="display:none;" onclick="openGoalModal()">Set/Edit Goal</div>
+        </div>
+    </div>
 
-<div class="card">
-<div class="chart-container">
-<canvas id="regularChart"></canvas>
-</div>
-</div>
+    <div class="reset-zone" onclick="resetSystem()">[ RESET SYSTEM ]</div>
 
-<div class="card">
-<h3>🤖 Smart Tips</h3>
-<div class="tip" id="regularTips"></div>
-</div>
+    <div class="fab" onclick="openPanel()"><i class="fa-solid fa-plus"></i></div>
+    <div class="panel" id="addPanel">
+        <h3 style="color:white; margin-bottom:15px;">Transaction</h3>
+        <input type="text" id="descInput" class="input-std" placeholder="Description">
+        <input type="number" id="amtInput" class="input-std" placeholder="Amount (₹)">
+        <div class="cat-grid">
+            <div class="cat-btn" onclick="selectCat('food', this)">Food</div>
+            <div class="cat-btn" onclick="selectCat('travel', this)">Travel</div>
+            <div class="cat-btn" onclick="selectCat('shop', this)">Shop</div>
+            <div class="cat-btn" onclick="selectCat('fun', this)">Fun</div>
+            <div class="cat-btn" onclick="selectCat('other', this)">Other</div>
+        </div>
+        <button class="btn-primary" onclick="addExpense()">Confirm</button>
+        <div style="text-align:center; margin-top:15px; color:#555; cursor:pointer;" onclick="closePanel()">Cancel</div>
+    </div>
 
-<div class="card">
-<button class="danger" onclick="resetRegular()">Reset Regular Mode</button>
-</div>
+    <script>
+        // --- DATA ---
+        let data = {
+            xp: 0, level: 1, income: 0, balance: 0,
+            mode: 'flex',
+            challenge: { active: false, start: null },
+            goal: { name: "None", cost: 0, saved: 0 },
+            expenses: { needs: 0, wants: 0 },
+            limits: { needs: 0, wants: 0, saveMonthly: 0 }
+        };
+        let selectedCategory = '';
+        let chartInst = null;
 
-</div>
+        // --- THE 100 LEVEL SYSTEM ---
+        function getRankName(lvl) {
+            if (lvl >= 100) return "GOD OF WEALTH";
+            
+            const tiers = [
+                "Iron",       // 1-10
+                "Bronze",     // 11-20
+                "Silver",     // 21-30
+                "Gold",       // 31-40
+                "Platinum",   // 41-50
+                "Emerald",    // 51-60
+                "Diamond",    // 61-70
+                "Master",     // 71-80
+                "Grandmaster",// 81-90
+                "Challenger"  // 91-99
+            ];
+            
+            // Math to determine Tier and Division (1-10)
+            const tierIndex = Math.floor((lvl - 1) / 10);
+            const division = (lvl - 1) % 10 + 1; // 1 to 10
+            
+            // Safety check in case lvl goes crazy
+            if (tierIndex >= tiers.length) return "Challenger " + division;
 
-<!-- IRREGULAR MODE -->
-<div id="irregular" class="hidden">
+            return `${tiers[tierIndex]} ${division}`;
+        }
 
-<div class="card">
-<h3>💎 Savings Goal Planner</h3>
-<input id="savingFor" type="text" placeholder="What are you saving for? (e.g., New Phone)">
-<input id="targetAmount" type="number" placeholder="How much does it cost? (₹)">
-<input id="currentMoney" type="number" placeholder="How much money do you have now? (₹)">
-<input id="futureIncome" type="number" placeholder="How much money will you get? (₹)">
-<input id="timeAmount" type="number" placeholder="In how much time?">
-<select id="timeUnit">
-<option value="days">Days</option>
-<option value="weeks">Weeks</option>
-<option value="months">Months</option>
-<option value="years">Years</option>
-</select>
-<button onclick="calculatePlan()">📊 Calculate Savings Plan</button>
-</div>
+        window.onload = () => {
+            if(localStorage.getItem('lootDataV9')) {
+                data = JSON.parse(localStorage.getItem('lootDataV9'));
+                document.getElementById('setupModal').classList.add('hidden');
+                initChart();
+                updateUI();
+                checkChallengeStatus();
+            } else {
+                document.getElementById('setupModal').classList.remove('hidden');
+            }
+        };
 
-<div id="planResults" class="hidden">
-<div class="card">
-<h3>📋 Your Savings Plan for "<span id="goalName"></span>"</h3>
-<div class="stat"><span>Target Amount</span><b>₹<span id="targetShow"></span></b></div>
-<div class="stat"><span>You have now</span><b>₹<span id="currentShow"></span></b></div>
-<div class="stat"><span>You will receive</span><b>₹<span id="futureShow"></span></b></div>
-<div class="stat"><span>Total Available</span><b>₹<span id="totalAvailable"></span></b></div>
-<div class="stat"><span>Left after purchase</span><b>₹<span id="leftOver"></span></b></div>
-</div>
+        // --- RESET LOGIC ---
+        function resetSystem() {
+            if(confirm("⚠ WARNING: Wipe all data? This cannot be undone.")) {
+                localStorage.removeItem('lootDataV9');
+                location.reload();
+            }
+        }
 
-<div class="card">
-<h3>💰 Daily Spending Budget Breakdown</h3>
-<div id="spendingBreakdown"></div>
-</div>
+        // --- CHALLENGE LOGIC ---
+        function startChallenge() {
+            data.challenge.active = true;
+            data.challenge.start = Date.now();
+            saveData();
+            updateUI();
+            confetti({ colors: ['#f97316'] });
+        }
 
-<div class="card">
-<h3>📊 Spending Budget Chart</h3>
-<div class="chart-container">
-<canvas id="budgetChart"></canvas>
-</div>
-</div>
+        function checkChallengeStatus() {
+            if (!data.challenge.active) return;
+            const now = Date.now();
+            const diff = now - data.challenge.start;
+            const daysPassed = Math.floor(diff / (1000 * 60 * 60 * 24));
+            if (daysPassed >= 7) {
+                data.challenge.active = false; data.challenge.start = null;
+                alert("CHALLENGE COMPLETE! +200 XP");
+                gainXP(200);
+            }
+        }
 
-<div class="card">
-<h3>📈 Savings Timeline</h3>
-<div class="chart-container">
-<canvas id="timelineChart"></canvas>
-</div>
-</div>
+        function renderChallenge() {
+            const box = document.getElementById('challengeBox');
+            if(!data.challenge.active) {
+                box.className = "challenge-box c-inactive";
+                box.innerHTML = `
+                    <div style="color:#aaa; font-size:0.9rem; margin-bottom:10px;">PROVE YOUR DISCIPLINE</div>
+                    <button class="c-btn" onclick="startChallenge()">Start No-Spend Week</button>
+                `;
+            } else {
+                const now = Date.now();
+                const diff = now - data.challenge.start;
+                const daysPassed = Math.min(7, Math.floor(diff / (1000 * 60 * 60 * 24)));
+                const perc = (daysPassed / 7) * 100;
+                box.className = "challenge-box c-active";
+                box.innerHTML = `
+                    <div class="streak-info">
+                        <span style="color:var(--fire)"><i class="fa-solid fa-fire"></i> STREAK ACTIVE</span>
+                        <span class="streak-days">${daysPassed}/7 DAYS</span>
+                    </div>
+                    <div class="streak-bar-bg"><div class="streak-bar-fill" style="width:${perc}%"></div></div>
+                    <div style="font-size:0.7rem; color:#666; margin-top:8px;">Adding any expense resets this.</div>
+                `;
+            }
+        }
 
-<div class="card">
-<h3>💸 Money Allocation</h3>
-<div class="chart-container">
-<canvas id="irrChart"></canvas>
-</div>
-</div>
+        // --- CORE FUNCTIONS ---
+        function completeSetup() {
+            const inc = parseFloat(document.getElementById('setupIncome').value);
+            if(!inc) return;
+            data.income = inc;
+            data.balance = inc;
+            data.limits.needs = Math.floor(inc * 0.50);
+            data.limits.wants = Math.floor(inc * 0.30);
+            data.limits.saveMonthly = Math.floor(inc * 0.20);
+            data.goal.saved = data.limits.saveMonthly;
+            data.balance -= data.limits.saveMonthly;
+            saveData();
+            document.getElementById('setupModal').classList.add('hidden');
+            initChart();
+            updateUI();
+        }
 
-<div class="card">
-<h3>🏆 Rewards Progress</h3>
-<div id="rewardsList"></div>
-</div>
-</div>
+        function switchTab(mode) { data.mode = mode; saveData(); updateUI(); }
 
-<div class="card">
-<h3>🤖 Smart Financial Tips for Teens</h3>
-<div class="tip" id="irrTips"></div>
-<button class="secondary" onclick="nextTip()" style="margin-top:12px">💡 Next Tip</button>
-</div>
+        function addExpense() {
+            const amt = parseFloat(document.getElementById('amtInput').value);
+            if(!amt || !selectedCategory) return;
+            if (data.challenge.active) { alert("CHALLENGE FAILED! Streak reset."); data.challenge.active = false; }
+            data.balance -= amt;
+            if(['food', 'travel'].includes(selectedCategory)) data.expenses.needs += amt;
+            else data.expenses.wants += amt;
+            gainXP(15);
+            closePanel();
+            document.getElementById('amtInput').value = '';
+            document.getElementById('descInput').value = '';
+            saveData();
+            updateUI();
+        }
 
-<div class="card">
-<button class="danger" onclick="resetIrregular()">Reset Irregular Mode</button>
-</div>
+        function gainXP(amt) {
+            data.xp += amt;
+            if(data.xp >= 100) { 
+                data.xp = 0; 
+                data.level++; 
+                confetti(); 
+                alert(`RANK UP! You are now ${getRankName(data.level)}`);
+            }
+            saveData();
+            updateUI();
+        }
 
-</div>
+        function updateUI() {
+            // UPDATED RANK LOGIC
+            const rankName = getRankName(data.level);
+            document.getElementById('rankBadge').innerText = rankName;
+            document.getElementById('xpBar').style.width = `${data.xp}%`;
 
-<!-- NO SPEND MODE -->
-<div id="nospend" class="hidden">
+            document.getElementById('displayBalance').innerText = `₹${data.balance}`;
+            chartInst.data.datasets[0].data = [data.balance, (data.income - data.balance)];
+            chartInst.update();
+            document.getElementById('tabTarget').classList.toggle('active', data.mode === 'target');
+            document.getElementById('tabFlex').classList.toggle('active', data.mode === 'flex');
+            renderChallenge();
+            updateBar('needsSpent', 'needsLimit', 'barNeeds', data.expenses.needs, data.limits.needs);
+            updateBar('wantsSpent', 'wantsLimit', 'barWants', data.expenses.wants, data.limits.wants);
+            
+            const saveBar = document.getElementById('barSaved');
+            const goalBtn = document.getElementById('setGoalBtn');
+            const title = document.getElementById('savingsTitle');
+            const txt = document.getElementById('savingsText');
 
-<div class="card">
-<h3>🚫 No Spend Challenge</h3>
-<p>Track your no-spend days and build a savings streak!</p>
-<input id="noSpendGoal" type="text" placeholder="Your savings goal (e.g., New Laptop)">
-<input id="startMoney" type="number" placeholder="Starting money (₹)">
-<div class="stat" style="margin-top:12px"><span><b>Challenge Duration:</b></span><b>30 Days</b></div>
-<button onclick="startChallenge()">🎯 Start 30-Day Challenge</button>
-</div>
+            if (data.mode === 'flex') {
+                title.innerText = "FLEX FUND";
+                txt.innerText = `₹${data.goal.saved} Saved`;
+                saveBar.style.width = '100%';
+                saveBar.style.backgroundColor = '#10b981';
+                goalBtn.style.display = 'none';
+            } else {
+                title.innerText = data.goal.cost > 0 ? `TARGET: ${data.goal.name.toUpperCase()}` : "NO TARGET";
+                goalBtn.style.display = 'block';
+                if (data.goal.cost > 0) {
+                    txt.innerText = `₹${data.goal.saved} / ₹${data.goal.cost}`;
+                    let perc = Math.min(100, (data.goal.saved / data.goal.cost) * 100);
+                    saveBar.style.width = `${perc}%`;
+                    saveBar.style.backgroundColor = perc >= 100 ? '#eab308' : '#10b981';
+                } else {
+                    txt.innerText = "Set Goal";
+                    saveBar.style.width = '0%';
+                }
+            }
+        }
 
-<div id="challengeActive" class="hidden">
-<div class="card">
-<h3>📊 Challenge Progress</h3>
-<div class="stat"><span>Goal</span><b id="challengeGoalName"></b></div>
-<div class="stat"><span>Starting Amount</span><b>₹<span id="challengeStart"></span></b></div>
-<div class="stat"><span>Current Amount</span><b>₹<span id="challengeCurrent"></span></b></div>
-<div class="stat"><span>Days Completed</span><b><span id="daysCompleted">0</span> / <span id="totalDays"></span></b></div>
-<div class="stat"><span>Success Rate</span><b><span id="successRate">0</span>%</b></div>
-</div>
+        function updateBar(vId, lId, bId, val, limit) {
+            document.getElementById(vId).innerText = val;
+            document.getElementById(lId).innerText = limit;
+            let p = (val/limit)*100;
+            document.getElementById(bId).style.width = `${Math.min(p, 100)}%`;
+            if(p > 100) document.getElementById(bId).style.backgroundColor = '#ef4444';
+            else document.getElementById(bId).style.backgroundColor = bId.includes('Needs') ? '#3b82f6' : '#8b5cf6';
+        }
 
-<div class="card">
-<h3>💰 Log Today's Activity</h3>
-<button onclick="logNoSpend()" style="background:#22c55e">✅ No Spend Today!</button>
-<input id="spendAmount" type="number" placeholder="Amount spent today (₹)" style="margin-top:12px">
-<button onclick="logSpend()" style="background:#f59e0b">💸 I Spent Money</button>
-</div>
-
-<div class="card">
-<h3>🔥 Your Streak</h3>
-<div style="text-align:center;padding:20px">
-<div style="font-size:48px;font-weight:bold;color:#ef4444" id="streakDisplay">0</div>
-<div style="font-size:18px;margin-top:10px">Days in a row! 🔥</div>
-</div>
-</div>
-
-<div class="card">
-<h3>📅 Challenge Calendar</h3>
-<div id="calendarDisplay"></div>
-</div>
-
-<div class="card">
-<h3>🏆 Challenge Achievements</h3>
-<div id="challengeAchievements"></div>
-</div>
-</div>
-
-<div class="card">
-<h3>🤖 No-Spend Challenge Tips</h3>
-<div class="tip" id="noSpendTips"></div>
-<button class="secondary" onclick="nextNoSpendTip()" style="margin-top:12px">💡 Next Tip</button>
-</div>
-
-<div class="card">
-<button class="danger" onclick="resetChallenge()">Reset Challenge</button>
-</div>
-
-</div>
-
-</div>
-
-<script>
-let charts = {
-  budget: null,
-  timeline: null,
-  allocation: null,
-  regular: null
-};
-
-let state={
-  dark:false,mode:null,
-  income:0,expenses:[],
-  savingsGoal:null,
-  tipIndex:0,
-  noSpendChallenge:null,
-  noSpendTipIndex:0
-};
-
-const teenTips=[
-  "💰 Save at least 20% of any money you receive - your future self will thank you!",
-  "🎯 Set specific savings goals instead of just saving randomly. It keeps you motivated!",
-  "📱 Avoid impulse buying - wait 24 hours before purchasing non-essentials.",
-  "🏦 Start an emergency fund with at least ₹1000 for unexpected situations.",
-  "📚 Invest in yourself - books, courses, and skills pay the best returns!",
-  "🛍️ Compare prices before buying. A few minutes of research can save hundreds!",
-  "💳 Learn the difference between wants and needs. Prioritize needs first!",
-  "🎁 Consider giving gifts of time or handmade items instead of expensive purchases.",
-  "📊 Track every expense for a month - you'll be surprised where money goes!",
-  "🔄 Before buying something new, ask: Can I borrow, rent, or buy it second-hand?",
-  "⏰ Time is money! Start saving early - even small amounts grow with time.",
-  "🎮 Set limits on entertainment spending - find free or low-cost fun activities!",
-  "👥 Don't try to keep up with friends' spending. Everyone's financial situation is different.",
-  "💡 Every ₹100 saved today could be worth much more in the future!",
-  "🎓 The best investment is in your education and personal development!"
-];
-
-const noSpendTips=[
-  "🚫 Unsubscribe from promotional emails to avoid temptation!",
-  "🏠 Find free entertainment: libraries, parks, YouTube tutorials, and community events.",
-  "🍳 Cook at home and meal prep - it's healthier and saves tons of money!",
-  "🚶 Walk or bike instead of taking paid transport when possible.",
-  "💪 Turn no-spend into a game - challenge yourself to find creative free alternatives!",
-  "📱 Delete shopping apps from your phone during the challenge.",
-  "👥 Tell friends about your challenge - they'll support you and hold you accountable!",
-  "🎨 Try free hobbies: drawing, writing, learning languages online, or exercising.",
-  "💰 Calculate how much you're saving each day - it's super motivating!",
-  "🔄 Repurpose things you already own instead of buying new items.",
-  "🎯 Remember WHY you're doing this - keep your goal visible!",
-  "📚 Use free resources: libraries for books, YouTube for learning, parks for fitness.",
-  "🌟 Every no-spend day is a WIN - celebrate your progress!",
-  "💡 Before buying, ask: Do I NEED this or just WANT it?",
-  "🏆 Track your streak - watching it grow is incredibly satisfying!"
-];
-
-function toggleDark(){
- state.dark=!state.dark;
- document.body.classList.toggle("dark");
-}
-
-function setMode(m){
- state.mode=m;
- document.getElementById("regular").classList.toggle("hidden",m!=="regular");
- document.getElementById("irregular").classList.toggle("hidden",m!=="irregular");
- document.getElementById("nospend").classList.toggle("hidden",m!=="nospend");
- update();
-}
-
-function saveIncome(){
-  state.income=+document.getElementById('income').value;
-  update();
-}
-
-function addExpense(){
- let amtInput = document.getElementById('amount');
- let catInput = document.getElementById('category');
- if(amtInput.value<=0)return;
- state.expenses.push({a:+amtInput.value,c:catInput.value});
- amtInput.value="";
- update();
-}
-
-function resetRegular(){
- if(confirm("Reset regular data?")){
-  state.income=0;
-  state.expenses=[];
-  update();
- }
-}
-
-function resetIrregular(){
- if(confirm("Reset irregular data?")){
-  state.savingsGoal=null;
-  document.getElementById("planResults").classList.add("hidden");
-  document.getElementById('savingFor').value="";
-  document.getElementById('targetAmount').value="";
-  document.getElementById('currentMoney').value="";
-  document.getElementById('futureIncome').value="";
-  document.getElementById('timeAmount').value="";
-  
-  if(charts.budget) charts.budget.destroy();
-  if(charts.timeline) charts.timeline.destroy();
-  if(charts.allocation) charts.allocation.destroy();
-  
-  update();
- }
-}
-
-function update(){
- if(state.mode==="regular"){
-  document.getElementById('income').value=state.income;
-  let spent=state.expenses.reduce((a,b)=>a+b.a,0);
-  document.getElementById('balance').innerText=state.income-spent;
-  document.getElementById('daily').innerText=Math.floor((state.income-spent)/30);
-  drawRegular();
- }
- tips();
-}
-
-function drawRegular(){
- if(charts.regular) charts.regular.destroy();
- 
- let cats={Food:0,Shopping:0,Entertainment:0};
- state.expenses.forEach(e=>cats[e.c]+=e.a);
- 
- let canvas=document.getElementById("regularChart");
- if(!canvas) return;
- 
- charts.regular = new Chart(canvas, {
-  type:"bar",
-  data:{
-   labels:Object.keys(cats),
-   datasets:[{
-    data:Object.values(cats),
-    backgroundColor:"#2563eb"
-   }]
-  },
-  options:{
-   responsive:true,
-   maintainAspectRatio:true,
-   plugins:{legend:{display:false}}
-  }
- });
-}
-
-function tips(){
- if(state.mode==="regular"){
-  let spent=state.expenses.reduce((a,b)=>a+b.a,0);
-  let p=spent/state.income*100||0;
-  document.getElementById('regularTips').innerText=
-   p<50?"Great control! Save more.":
-   p<80?"Balanced spending.":
-   "High spending! Cut entertainment.";
- }else if(state.mode==="irregular"){
-  document.getElementById('irrTips').innerText=teenTips[state.tipIndex];
- }else if(state.mode==="nospend"){
-  document.getElementById('noSpendTips').innerText=noSpendTips[state.noSpendTipIndex];
- }
-}
-
-function nextTip(){
- state.tipIndex=(state.tipIndex+1)%teenTips.length;
- document.getElementById('irrTips').innerText=teenTips[state.tipIndex];
-}
-
-function nextNoSpendTip(){
- state.noSpendTipIndex=(state.noSpendTipIndex+1)%noSpendTips.length;
- document.getElementById('noSpendTips').innerText=noSpendTips[state.noSpendTipIndex];
-}
-
-function calculatePlan(){
- let target=+document.getElementById('targetAmount').value;
- let current=+document.getElementById('currentMoney').value;
- let future=+document.getElementById('futureIncome').value;
- let time=+document.getElementById('timeAmount').value;
- let unit=document.getElementById('timeUnit').value;
- let goal=document.getElementById('savingFor').value||"Goal";
- 
- if(!target||!time||target<=0||current<0||future<0){
-  alert("Please fill all fields correctly!");
-  return;
- }
- 
- let totalMoney=current+future;
- 
- if(totalMoney<target){
-  alert("You don't have enough money even with future income! You need ₹"+(target-totalMoney)+" more.");
-  return;
- }
- 
- let leftOver=totalMoney-target;
- 
- let days;
- if(unit==="days")days=time;
- else if(unit==="weeks")days=time*7;
- else if(unit==="months")days=time*30;
- else days=time*365;
- 
- let dailyBudget=leftOver/days;
- let weeklyBudget=dailyBudget*7;
- let monthlyBudget=dailyBudget*30;
- 
- state.savingsGoal={
-  goal,target,current,future,leftOver,
-  dailyBudget,weeklyBudget,monthlyBudget,days
- };
- 
- document.getElementById('goalName').innerText=goal;
- document.getElementById('targetShow').innerText=target;
- document.getElementById('currentShow').innerText=current;
- document.getElementById('futureShow').innerText=future;
- document.getElementById('totalAvailable').innerText=totalMoney;
- document.getElementById('leftOver').innerText=leftOver;
- 
- document.getElementById("planResults").classList.remove("hidden");
- 
- showSpendingBreakdown();
- drawBudgetChart();
- drawTimelineChart();
- drawAllocationChart();
- showRewards();
-}
-
-function showSpendingBreakdown(){
- let daily=state.savingsGoal.dailyBudget;
- 
- let breakdown={
-  "🍔 Food":Math.round(daily*0.3),
-  "👕 Clothes":Math.round(daily*0.2),
-  "📚 Books":Math.round(daily*0.15),
-  "🎮 Toys/Games":Math.round(daily*0.15),
-  "🛒 Other Essentials":Math.round(daily*0.2)
- };
- 
- let html="<p><b>You can spend per day:</b></p>";
- for(let item in breakdown){
-  html+=`<div class="spending-item"><span>${item}</span><b>₹${breakdown[item]}</b></div>`;
- }
- 
- document.getElementById("spendingBreakdown").innerHTML=html;
-}
-
-function drawBudgetChart(){
- try {
-   console.log("Drawing budget chart...");
-   if(charts.budget) {
-     charts.budget.destroy();
-     charts.budget = null;
-   }
-   
-   let daily=state.savingsGoal.dailyBudget;
-   console.log("Daily budget:", daily);
-   
-   let budgetData=[
-    Math.round(daily*0.3),
-    Math.round(daily*0.2),
-    Math.round(daily*0.15),
-    Math.round(daily*0.15),
-    Math.round(daily*0.2)
-   ];
-   
-   console.log("Budget data:", budgetData);
-   
-   let canvas=document.getElementById("budgetChart");
-   console.log("Canvas element:", canvas);
-   if(!canvas) {
-     alert("Budget chart canvas not found!");
-     return;
-   }
-   
-   charts.budget = new Chart(canvas, {
-    type:"pie",
-    data:{
-     labels:["Food","Clothes","Books","Toys/Games","Essentials"],
-     datasets:[{
-      data:budgetData,
-      backgroundColor:["#ef4444","#8b5cf6","#3b82f6","#f59e0b","#10b981"]
-     }]
-    },
-    options:{
-     responsive:true,
-     maintainAspectRatio:true,
-     plugins:{
-      legend:{position:'bottom'}
-     }
-    }
-   });
-   
-   console.log("Budget chart created successfully!");
- } catch(error) {
-   console.error("Error creating budget chart:", error);
-   alert("Budget chart error: " + error.message);
- }
-}
-
-function drawTimelineChart(){
- if(charts.timeline) {
-   charts.timeline.destroy();
-   charts.timeline = null;
- }
- 
- let perWeek=Math.round(state.savingsGoal.weeklyBudget);
- let perMonth=Math.round(state.savingsGoal.monthlyBudget);
- let perYear=Math.round(perMonth*12);
- 
- let canvas=document.getElementById("timelineChart");
- if(!canvas) return;
- 
- charts.timeline = new Chart(canvas, {
-  type:"bar",
-  data:{
-   labels:["Per Week","Per Month","Per Year"],
-   datasets:[{
-    label:"Available to Spend (₹)",
-    data:[perWeek, perMonth, perYear],
-    backgroundColor:["#22c55e","#3b82f6","#a855f7"]
-   }]
-  },
-  options:{
-   responsive:true,
-   maintainAspectRatio:true,
-   plugins:{legend:{display:false}}
-  }
- });
-}
-
-function drawAllocationChart(){
- if(charts.allocation) {
-   charts.allocation.destroy();
-   charts.allocation = null;
- }
- 
- let current=state.savingsGoal.current;
- let future=state.savingsGoal.future;
- let target=state.savingsGoal.target;
- let total=current+future;
- let leftover=Math.max(0,total-target);
- 
- let canvas=document.getElementById("irrChart");
- if(!canvas) return;
- 
- charts.allocation = new Chart(canvas, {
-  type:"doughnut",
-  data:{
-   labels:["For Purchase","Left Over"],
-   datasets:[{
-    data:[target, leftover],
-    backgroundColor:["#ef4444","#22c55e"]
-   }]
-  },
-  options:{
-   responsive:true,
-   maintainAspectRatio:true,
-   plugins:{
-    legend:{position:'bottom'}
-   }
-  }
- });
-}
-
-function showRewards(){
- let rewards=[
-  {at:1000,text:"🥉 Bronze Saver - First ₹1000 saved!"},
-  {at:5000,text:"🥈 Silver Saver - ₹5000 milestone reached!"},
-  {at:10000,text:"🥇 Gold Saver - ₹10,000 saved! Amazing!"},
-  {at:25000,text:"💎 Diamond Saver - ₹25,000! You're unstoppable!"},
-  {at:50000,text:"👑 Elite Saver - ₹50,000! Financial Master!"}
- ];
- 
- let saved=state.savingsGoal.current;
- let html="";
- rewards.forEach(r=>{
-  if(saved>=r.at){
-   html+=`<div class="tip" style="margin-top:8px">✅ ${r.text}</div>`;
-  }else{
-   let need=r.at-saved;
-   html+=`<div style="padding:10px;margin-top:8px;background:#334155;border-radius:8px;color:#e5e7eb">
-    🔒 ${r.text}<br><small>Save ₹${need} more to unlock!</small>
-   </div>`;
-  }
- });
- 
- document.getElementById("rewardsList").innerHTML=html;
-}
-
-// NO SPEND CHALLENGE FUNCTIONS
-function startChallenge(){
- let goal = document.getElementById('noSpendGoal').value || "Savings Goal";
- let start = +document.getElementById('startMoney').value;
- let days = 30; // Fixed 30-day challenge
- 
- if(!start || start<=0){
-  alert("Please enter your starting money amount!");
-  return;
- }
- 
- state.noSpendChallenge = {
-  goal: goal,
-  startAmount: start,
-  currentAmount: start,
-  totalDays: days,
-  daysLog: [],
-  streak: 0,
-  maxStreak: 0
- };
- 
- updateChallengeDisplay();
- document.getElementById('challengeActive').classList.remove('hidden');
- alert("🎉 30-Day Challenge Started! Let's save some money!");
-}
-
-function logNoSpend(){
- if(!state.noSpendChallenge) return;
- 
- let today = new Date().toDateString();
- let log = state.noSpendChallenge.daysLog;
- 
- if(log.length>0 && log[log.length-1].date === today){
-  alert("Already logged today!");
-  return;
- }
- 
- log.push({date: today, spent: 0, success: true});
- state.noSpendChallenge.streak++;
- if(state.noSpendChallenge.streak > state.noSpendChallenge.maxStreak){
-  state.noSpendChallenge.maxStreak = state.noSpendChallenge.streak;
- }
- 
- updateChallengeDisplay();
- alert("🎉 Great job! No-spend day logged!");
-}
-
-function logSpend(){
- if(!state.noSpendChallenge) return;
- 
- let amount = +document.getElementById('spendAmount').value;
- if(!amount || amount<=0){
-  alert("Please enter the amount spent!");
-  return;
- }
- 
- let today = new Date().toDateString();
- let log = state.noSpendChallenge.daysLog;
- 
- if(log.length>0 && log[log.length-1].date === today){
-  alert("Already logged today!");
-  return;
- }
- 
- log.push({date: today, spent: amount, success: false});
- state.noSpendChallenge.currentAmount -= amount;
- state.noSpendChallenge.streak = 0;
- 
- document.getElementById('spendAmount').value = "";
- updateChallengeDisplay();
-}
-
-function updateChallengeDisplay(){
- let c = state.noSpendChallenge;
- 
- document.getElementById('challengeGoalName').innerText = c.goal;
- document.getElementById('challengeStart').innerText = c.startAmount;
- document.getElementById('challengeCurrent').innerText = c.currentAmount;
- document.getElementById('daysCompleted').innerText = c.daysLog.length;
- document.getElementById('totalDays').innerText = c.totalDays;
- 
- let successDays = c.daysLog.filter(d=>d.success).length;
- let rate = c.daysLog.length > 0 ? Math.round((successDays/c.daysLog.length)*100) : 0;
- document.getElementById('successRate').innerText = rate;
- 
- document.getElementById('streakDisplay').innerText = c.streak;
- 
- drawCalendar();
- showChallengeAchievements();
-}
-
-function drawCalendar(){
- let c = state.noSpendChallenge;
- let html = "<div style='display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:10px'>";
- 
- for(let i=0; i<c.totalDays; i++){
-  let status = i < c.daysLog.length ? (c.daysLog[i].success ? "✅" : "❌") : "⬜";
-  let bg = i < c.daysLog.length ? (c.daysLog[i].success ? "#22c55e" : "#ef4444") : "#94a3b8";
-  html += `<div style="padding:10px;background:${bg};border-radius:8px;text-align:center;color:white;font-weight:bold">${status}</div>`;
- }
- 
- html += "</div>";
- document.getElementById('calendarDisplay').innerHTML = html;
-}
-
-function showChallengeAchievements(){
- let c = state.noSpendChallenge;
- let achievements = [
-  {at:1, text:"🌟 First Day - You started the journey!"},
-  {at:3, text:"🔥 3-Day Streak - Building momentum!"},
-  {at:7, text:"⭐ Week Warrior - 7 days strong!"},
-  {at:14, text:"💪 Two Weeks - Halfway hero!"},
-  {at:30, text:"👑 Month Master - 30 days of discipline!"}
- ];
- 
- let saved = c.startAmount - c.currentAmount;
- let html = "";
- 
- achievements.forEach(a=>{
-  if(c.maxStreak >= a.at){
-   html += `<div class="tip" style="margin-top:8px">✅ ${a.text}</div>`;
-  }else{
-   html += `<div style="padding:10px;margin-top:8px;background:#334155;border-radius:8px;color:#e5e7eb">🔒 ${a.text}</div>`;
-  }
- });
- 
- html += `<div class="tip" style="margin-top:12px">💰 Money Saved: ₹${Math.abs(saved)}</div>`;
- 
- document.getElementById('challengeAchievements').innerHTML = html;
-}
-
-function resetChallenge(){
- if(confirm("Reset 30-day no-spend challenge? All progress will be lost!")){
-  state.noSpendChallenge = null;
-  document.getElementById('challengeActive').classList.add('hidden');
-  document.getElementById('noSpendGoal').value = "";
-  document.getElementById('startMoney').value = "";
- }
-}
-
-// Initialize
-tips();
-</script>
-
+        function openPanel() { document.getElementById('addPanel').classList.add('open'); }
+        function closePanel() { document.getElementById('addPanel').classList.remove('open'); }
+        function selectCat(cat, btn) {
+            selectedCategory = cat;
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+        function openGoalModal() { document.getElementById('goalModal').classList.remove('hidden'); }
+        function closeGoalModal() { document.getElementById('goalModal').classList.add('hidden'); }
+        function setGoal() {
+            const name = document.getElementById('newGoalName').value;
+            const cost = parseFloat(document.getElementById('newGoalCost').value);
+            if(name && cost) { data.goal.name = name; data.goal.cost = cost; closeGoalModal(); saveData(); updateUI(); }
+        }
+        function initChart() {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            chartInst = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: ['Avail', 'Spent'], datasets: [{ data: [100, 0], backgroundColor: ['#fff', '#222'], borderWidth: 0, cutout: '85%' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+        function saveData() { localStorage.setItem('lootDataV9', JSON.stringify(data)); }
+    </script>
 </body>
 </html>
