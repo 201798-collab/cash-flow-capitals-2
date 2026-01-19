@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LootLedger V9: 100 Levels</title>
+    <title>LootLedger V12: Complete</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700;800&display=swap" rel="stylesheet">
@@ -79,6 +79,15 @@
         .balance-big { font-size: 2.2rem; font-weight: 800; color: #fff; }
         .balance-label { font-size: 0.8rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
 
+        /* --- NEW: SLIDER TUNER --- */
+        .slider-box {
+            width: 100%; max-width: 500px; background: #111; padding: 15px; 
+            border-radius: 12px; border: 1px solid #222; margin-bottom: 20px;
+        }
+        .slider-row { margin: 10px 0; }
+        .slider-header { display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: #888; margin-bottom: 5px;}
+        input[type=range] { width: 100%; cursor: pointer; accent-color: var(--xp); height: 5px; background: #333; border-radius: 5px; outline: none; }
+
         /* --- 5. BUDGET BARS --- */
         .rule-container { width: 100%; max-width: 500px; display: grid; gap: 15px; margin-bottom: 25px; }
         .rule-card {
@@ -92,6 +101,11 @@
         .rc-needs { border-color: var(--needs); } .rc-needs .rule-bar-fill { background: var(--needs); }
         .rc-wants { border-color: var(--wants); } .rc-wants .rule-bar-fill { background: var(--wants); }
         .rc-saves { border-color: var(--saves); } .rc-saves .rule-bar-fill { background: var(--saves); }
+
+        .countdown-text {
+            font-size: 0.75rem; color: var(--saves); font-weight: 800; margin-top: 8px; 
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
 
         /* --- 6. ADD BUTTON & PANELS --- */
         .fab {
@@ -165,6 +179,10 @@
             <h2 style="margin-bottom:20px; color:#fff;">Set Target</h2>
             <input type="text" id="newGoalName" class="input-std" placeholder="Item Name">
             <input type="number" id="newGoalCost" class="input-std" placeholder="Cost">
+            
+            <div style="text-align:left; font-size:0.8rem; color:#888; margin-bottom:5px;">Target Date (Optional):</div>
+            <input type="date" id="newGoalDate" class="input-std">
+
             <button class="btn-primary" style="background:var(--saves)" onclick="setGoal()">Save Target</button>
             <div class="edit-link" onclick="closeGoalModal()">Cancel</div>
         </div>
@@ -181,6 +199,16 @@
         <div class="tab" id="tabFlex" onclick="switchTab('flex')"><i class="fa-solid fa-shield-halved"></i> Flex</div>
     </div>
 
+    <div class="slider-box">
+        <div class="slider-header"><span>RULE TUNER</span><span id="ratioDisplay">50 / 30 / 20</span></div>
+        <div class="slider-row">
+            <input type="range" id="needsSlider" min="10" max="90" value="50" oninput="updateSliders()">
+        </div>
+        <div class="slider-row">
+            <input type="range" id="wantsSlider" min="0" max="90" value="30" oninput="updateSliders()">
+        </div>
+    </div>
+
     <div class="challenge-box" id="challengeBox"></div>
 
     <div class="hud-chart">
@@ -193,16 +221,17 @@
 
     <div class="rule-container">
         <div class="rule-card rc-needs">
-            <div class="rule-header"><span>NEEDS (50%)</span><span><span id="needsSpent">0</span> / <span id="needsLimit">0</span></span></div>
+            <div class="rule-header"><span id="needsTitle">NEEDS (50%)</span><span><span id="needsSpent">0</span> / <span id="needsLimit">0</span></span></div>
             <div class="rule-bar-bg"><div class="rule-bar-fill" id="barNeeds" style="width:0%"></div></div>
         </div>
         <div class="rule-card rc-wants">
-            <div class="rule-header"><span>WANTS (30%)</span><span><span id="wantsSpent">0</span> / <span id="wantsLimit">0</span></span></div>
+            <div class="rule-header"><span id="wantsTitle">WANTS (30%)</span><span><span id="wantsSpent">0</span> / <span id="wantsLimit">0</span></span></div>
             <div class="rule-bar-bg"><div class="rule-bar-fill" id="barWants" style="width:0%"></div></div>
         </div>
         <div class="rule-card rc-saves">
             <div class="rule-header"><span id="savingsTitle">SAVINGS</span><span id="savingsText">0</span></div>
             <div class="rule-bar-bg"><div class="rule-bar-fill" id="barSaved" style="width:0%"></div></div>
+            <div id="countdownTimer" class="countdown-text"></div>
             <div id="setGoalBtn" class="edit-link" style="display:none;" onclick="openGoalModal()">Set/Edit Goal</div>
         </div>
     </div>
@@ -230,8 +259,9 @@
         let data = {
             xp: 0, level: 1, income: 0, balance: 0,
             mode: 'flex',
+            ratios: { n: 50, w: 30, s: 20 }, // New Slider Data
             challenge: { active: false, start: null },
-            goal: { name: "None", cost: 0, saved: 0 },
+            goal: { name: "None", cost: 0, saved: 0, date: "" }, // Added Date
             expenses: { needs: 0, wants: 0 },
             limits: { needs: 0, wants: 0, saveMonthly: 0 }
         };
@@ -241,34 +271,25 @@
         // --- THE 100 LEVEL SYSTEM ---
         function getRankName(lvl) {
             if (lvl >= 100) return "GOD OF WEALTH";
-            
-            const tiers = [
-                "Iron",       // 1-10
-                "Bronze",     // 11-20
-                "Silver",     // 21-30
-                "Gold",       // 31-40
-                "Platinum",   // 41-50
-                "Emerald",    // 51-60
-                "Diamond",    // 61-70
-                "Master",     // 71-80
-                "Grandmaster",// 81-90
-                "Challenger"  // 91-99
-            ];
-            
-            // Math to determine Tier and Division (1-10)
+            const tiers = ["Iron", "Bronze", "Silver", "Gold", "Platinum", "Emerald", "Diamond", "Master", "Grandmaster", "Challenger"];
             const tierIndex = Math.floor((lvl - 1) / 10);
-            const division = (lvl - 1) % 10 + 1; // 1 to 10
-            
-            // Safety check in case lvl goes crazy
+            const division = (lvl - 1) % 10 + 1;
             if (tierIndex >= tiers.length) return "Challenger " + division;
-
             return `${tiers[tierIndex]} ${division}`;
         }
 
         window.onload = () => {
-            if(localStorage.getItem('lootDataV9')) {
-                data = JSON.parse(localStorage.getItem('lootDataV9'));
+            if(localStorage.getItem('lootDataV12')) {
+                data = JSON.parse(localStorage.getItem('lootDataV12'));
+                // Glitch Fix: Ensure ratios exist if migrating from old version
+                if(!data.ratios) data.ratios = { n: 50, w: 30, s: 20 };
+                
                 document.getElementById('setupModal').classList.add('hidden');
+                
+                // Set sliders to saved positions
+                document.getElementById('needsSlider').value = data.ratios.n;
+                document.getElementById('wantsSlider').value = data.ratios.w;
+
                 initChart();
                 updateUI();
                 checkChallengeStatus();
@@ -280,9 +301,33 @@
         // --- RESET LOGIC ---
         function resetSystem() {
             if(confirm("⚠ WARNING: Wipe all data? This cannot be undone.")) {
-                localStorage.removeItem('lootDataV9');
+                localStorage.removeItem('lootDataV12');
                 location.reload();
             }
+        }
+
+        // --- SLIDER LOGIC (NEW) ---
+        function updateSliders() {
+            let n = parseInt(document.getElementById('needsSlider').value);
+            let w = parseInt(document.getElementById('wantsSlider').value);
+
+            // Safety: Ensure we have room for savings (min 5%)
+            if (n + w > 95) {
+                w = 95 - n;
+                document.getElementById('wantsSlider').value = w;
+            }
+
+            data.ratios.n = n;
+            data.ratios.w = w;
+            data.ratios.s = 100 - (n + w);
+
+            // Recalculate Limits immediately
+            data.limits.needs = Math.floor(data.income * (n / 100));
+            data.limits.wants = Math.floor(data.income * (w / 100));
+            data.limits.saveMonthly = Math.floor(data.income * (data.ratios.s / 100));
+
+            saveData();
+            updateUI();
         }
 
         // --- CHALLENGE LOGIC ---
@@ -337,6 +382,7 @@
             if(!inc) return;
             data.income = inc;
             data.balance = inc;
+            // Default 50/30/20 on setup
             data.limits.needs = Math.floor(inc * 0.50);
             data.limits.wants = Math.floor(inc * 0.30);
             data.limits.saveMonthly = Math.floor(inc * 0.20);
@@ -378,24 +424,36 @@
         }
 
         function updateUI() {
-            // UPDATED RANK LOGIC
+            // Rank
             const rankName = getRankName(data.level);
             document.getElementById('rankBadge').innerText = rankName;
             document.getElementById('xpBar').style.width = `${data.xp}%`;
 
+            // Balance & Chart
             document.getElementById('displayBalance').innerText = `₹${data.balance}`;
             chartInst.data.datasets[0].data = [data.balance, (data.income - data.balance)];
             chartInst.update();
+
+            // Tabs
             document.getElementById('tabTarget').classList.toggle('active', data.mode === 'target');
             document.getElementById('tabFlex').classList.toggle('active', data.mode === 'flex');
             renderChallenge();
+
+            // Sliders Display
+            document.getElementById('ratioDisplay').innerText = `${data.ratios.n} / ${data.ratios.w} / ${data.ratios.s}`;
+            document.getElementById('needsTitle').innerText = `NEEDS (${data.ratios.n}%)`;
+            document.getElementById('wantsTitle').innerText = `WANTS (${data.ratios.w}%)`;
+
+            // Bars
             updateBar('needsSpent', 'needsLimit', 'barNeeds', data.expenses.needs, data.limits.needs);
             updateBar('wantsSpent', 'wantsLimit', 'barWants', data.expenses.wants, data.limits.wants);
             
+            // Savings Logic + Timer
             const saveBar = document.getElementById('barSaved');
             const goalBtn = document.getElementById('setGoalBtn');
             const title = document.getElementById('savingsTitle');
             const txt = document.getElementById('savingsText');
+            const timer = document.getElementById('countdownTimer');
 
             if (data.mode === 'flex') {
                 title.innerText = "FLEX FUND";
@@ -403,7 +461,9 @@
                 saveBar.style.width = '100%';
                 saveBar.style.backgroundColor = '#10b981';
                 goalBtn.style.display = 'none';
+                timer.innerText = "";
             } else {
+                // Target Mode
                 title.innerText = data.goal.cost > 0 ? `TARGET: ${data.goal.name.toUpperCase()}` : "NO TARGET";
                 goalBtn.style.display = 'block';
                 if (data.goal.cost > 0) {
@@ -411,9 +471,30 @@
                     let perc = Math.min(100, (data.goal.saved / data.goal.cost) * 100);
                     saveBar.style.width = `${perc}%`;
                     saveBar.style.backgroundColor = perc >= 100 ? '#eab308' : '#10b981';
+
+                    // TIME CALCULATION
+                    if(data.goal.date) {
+                        const now = new Date();
+                        const end = new Date(data.goal.date);
+                        const diff = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+                        const remaining = data.goal.cost - data.goal.saved;
+                        
+                        if(diff > 0 && remaining > 0) {
+                            const daily = (remaining / diff).toFixed(0);
+                            timer.innerText = `⏳ ${diff} Days Left | Save ₹${daily}/Day`;
+                        } else if (remaining <= 0) {
+                            timer.innerText = "GOAL ACHIEVED!";
+                        } else {
+                            timer.innerText = "DEADLINE PASSED";
+                        }
+                    } else {
+                        timer.innerText = "";
+                    }
+
                 } else {
                     txt.innerText = "Set Goal";
                     saveBar.style.width = '0%';
+                    timer.innerText = "";
                 }
             }
         }
@@ -421,7 +502,7 @@
         function updateBar(vId, lId, bId, val, limit) {
             document.getElementById(vId).innerText = val;
             document.getElementById(lId).innerText = limit;
-            let p = (val/limit)*100;
+            let p = limit > 0 ? (val/limit)*100 : 0;
             document.getElementById(bId).style.width = `${Math.min(p, 100)}%`;
             if(p > 100) document.getElementById(bId).style.backgroundColor = '#ef4444';
             else document.getElementById(bId).style.backgroundColor = bId.includes('Needs') ? '#3b82f6' : '#8b5cf6';
@@ -439,7 +520,16 @@
         function setGoal() {
             const name = document.getElementById('newGoalName').value;
             const cost = parseFloat(document.getElementById('newGoalCost').value);
-            if(name && cost) { data.goal.name = name; data.goal.cost = cost; closeGoalModal(); saveData(); updateUI(); }
+            const date = document.getElementById('newGoalDate').value;
+
+            if(name && cost) { 
+                data.goal.name = name; 
+                data.goal.cost = cost; 
+                data.goal.date = date; // Save date
+                closeGoalModal(); 
+                saveData(); 
+                updateUI(); 
+            }
         }
         function initChart() {
             const ctx = document.getElementById('mainChart').getContext('2d');
@@ -449,7 +539,7 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
         }
-        function saveData() { localStorage.setItem('lootDataV9', JSON.stringify(data)); }
+        function saveData() { localStorage.setItem('lootDataV12', JSON.stringify(data)); }
     </script>
 </body>
 </html>
